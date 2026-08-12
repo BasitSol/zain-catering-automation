@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @page { margin: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #2b2b2b; margin: 0; padding: 40px; font-size: 13px; }
+  .header { display: flex; justify-content: space-between; border-bottom: 3px solid #b5391a; padding-bottom: 16px; margin-bottom: 24px; }
+  .brand { font-size: 22px; font-weight: 700; color: #b5391a; }
+  .brand-sub { font-size: 11px; color: #777; margin-top: 4px; }
+  .invoice-meta { text-align: right; font-size: 12px; }
+  .invoice-meta .label { color: #888; }
+  h2.section { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #b5391a; border-bottom: 1px solid #eee; padding-bottom: 4px; margin-top: 24px; margin-bottom: 10px; }
+  .client-block { display: flex; justify-content: space-between; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th { text-align: left; background: #faf1ee; color: #b5391a; font-size: 11px; text-transform: uppercase; padding: 8px; }
+  td { padding: 8px; border-bottom: 1px solid #eee; font-size: 12.5px; }
+  .totals { width: 260px; margin-left: auto; margin-top: 16px; }
+  .totals td { padding: 6px 8px; }
+  .totals .grand { font-weight: 700; font-size: 15px; color: #b5391a; border-top: 2px solid #b5391a; }
+  .footer { margin-top: 40px; font-size: 10.5px; color: #999; text-align: center; }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <div class="brand">Zain Catering Services</div>
+      <div class="brand-sub">Biryani &middot; Qorma &middot; Naan &middot; Qulfa &middot; Full Event Setup</div>
+      <div class="brand-sub">Lahore, Punjab, Pakistan &middot; +92 300 0000000</div>
+    </div>
+    <div class="invoice-meta">
+      <div><span class="label">Invoice #:</span> {{invoice_number}}</div>
+      <div><span class="label">Order Ref:</span> {{order_ref}}</div>
+      <div><span class="label">Issued:</span> {{issued_date}}</div>
+      <div><span class="label">Event Date:</span> {{event_date}}</div>
+    </div>
+  </div>
+
+  <div class="client-block">
+    <div>
+      <h2 class="section">Billed To</h2>
+      {{client_name}}<br>
+      {{client_phone}}<br>
+      {{venue_address}}
+    </div>
+    <div style="text-align:right;">
+      <h2 class="section">Event Details</h2>
+      Guests: {{guest_count}}<br>
+      Status: {{invoice_status}}
+    </div>
+  </div>
+
+  <h2 class="section">Menu</h2>
+  <table>
+    <tr><th>Item</th><th>Guests Served</th></tr>
+    {{menu_rows}}
+  </table>
+
+  <h2 class="section">Equipment &amp; Arrangements</h2>
+  <table>
+    <tr><th>Item</th><th>Quantity</th></tr>
+    {{equipment_rows}}
+  </table>
+
+  <table class="totals">
+    <tr><td>Total Amount</td><td style="text-align:right;">PKR {{total}}</td></tr>
+    <tr><td>Paid</td><td style="text-align:right;">PKR {{paid_amount}}</td></tr>
+    <tr class="grand"><td>Balance Due</td><td style="text-align:right;">PKR {{balance}}</td></tr>
+  </table>
+
+  <div class="footer">
+    Thank you for choosing Zain Catering Services. Payments accepted via Cash, JazzCash, EasyPaisa, or Bank Transfer.
+  </div>
+
+</body>
+</html>

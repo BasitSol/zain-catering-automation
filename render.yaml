@@ -1,0 +1,87 @@
+services:
+  # ---------------------------------------------------------------------------
+  # Admin Portal & Public Order Form
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: zain-admin-portal
+    env: node
+    region: singapore
+    plan: free
+    buildCommand: cd admin-portal && npm install
+    startCommand: cd admin-portal && node server.js
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: zain-db
+          property: connectionString
+      - key: N8N_BASE_URL
+        fromService:
+          type: web
+          name: zain-n8n
+          property: url
+
+  # ---------------------------------------------------------------------------
+  # n8n Automation Engine
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: zain-n8n
+    env: docker
+    region: singapore
+    plan: free
+    dockerCommand: n8n
+    envVars:
+      - key: N8N_PORT
+        value: 10000
+      - key: N8N_ENCRYPTION_KEY
+        generateValue: true
+      - key: DB_TYPE
+        value: postgresdb
+      - key: DB_POSTGRESDB_HOST
+        fromDatabase:
+          name: zain-db
+          property: host
+      - key: DB_POSTGRESDB_PORT
+        fromDatabase:
+          name: zain-db
+          property: port
+      - key: DB_POSTGRESDB_DATABASE
+        fromDatabase:
+          name: zain-db
+          property: database
+      - key: DB_POSTGRESDB_USER
+        fromDatabase:
+          name: zain-db
+          property: user
+      - key: DB_POSTGRESDB_PASSWORD
+        fromDatabase:
+          name: zain-db
+          property: password
+      - key: DB_POSTGRESDB_SCHEMA
+        value: n8n_internal
+      - key: N8N_SECURE_COOKIE
+        value: "false"
+      - key: GENERIC_TIMEZONE
+        value: Asia/Karachi
+      - key: TZ
+        value: Asia/Karachi
+
+  # ---------------------------------------------------------------------------
+  # Gotenberg PDF Converter Engine
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: zain-gotenberg
+    env: docker
+    region: singapore
+    plan: free
+    dockerImage: gotenberg/gotenberg:8
+    dockerCommand: gotenberg --chromium-disable-javascript=false
+
+databases:
+  # ---------------------------------------------------------------------------
+  # Managed PostgreSQL Database
+  # ---------------------------------------------------------------------------
+  - name: zain-db
+    databaseName: zain_catering
+    user: zain_admin
+    region: singapore
+    plan: free

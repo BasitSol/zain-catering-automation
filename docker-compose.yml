@@ -1,0 +1,127 @@
+# =============================================================================
+# Zain Catering Services - Business Automation Stack
+# n8n + PostgreSQL + Admin Portal + Gotenberg + Cloudflare Tunnel
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL - the single source of truth for all business data
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: zain_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-zain_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_strong_password}
+      POSTGRES_DB: ${POSTGRES_DB:-zain_catering}
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - zain_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-zain_admin} -d ${POSTGRES_DB:-zain_catering}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # n8n - the automation engine (all workflows live here)
+  # ---------------------------------------------------------------------------
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: zain_n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - NODE_ENV=production
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
+      - N8N_SECURE_COOKIE=false
+      - GENERIC_TIMEZONE=Asia/Karachi
+      - TZ=Asia/Karachi
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB:-zain_catering}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER:-zain_admin}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD:-changeme_strong_password}
+      - DB_POSTGRESDB_SCHEMA=n8n_internal
+    volumes:
+      - ./n8n-data:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - zain_net
+
+  # ---------------------------------------------------------------------------
+  # Admin Portal - custom dashboard UI for Zain to manage business data
+  # ---------------------------------------------------------------------------
+  admin-portal:
+    build: ./admin-portal
+    container_name: zain_admin_portal
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - PGHOST=postgres
+      - PGPORT=5432
+      - PGUSER=${POSTGRES_USER:-zain_admin}
+      - PGPASSWORD=${POSTGRES_PASSWORD:-changeme_strong_password}
+      - PGDATABASE=${POSTGRES_DB:-zain_catering}
+      - N8N_BASE_URL=http://n8n:5678
+      - PORT=8080
+      - TYPEFORM_CLIENT_ORDER_URL=${TYPEFORM_CLIENT_ORDER_URL:-https://typeform.com}
+      - TYPEFORM_INTERNAL_ORDER_URL=${TYPEFORM_INTERNAL_ORDER_URL:-https://typeform.com}
+      - TYPEFORM_CONFIRM_ORDER_URL=${TYPEFORM_CONFIRM_ORDER_URL:-https://typeform.com}
+      - TYPEFORM_LOG_PAYMENT_URL=${TYPEFORM_LOG_PAYMENT_URL:-https://typeform.com}
+    volumes:
+      - ./admin-portal/public:/app/public
+      - ./admin-portal/server.js:/app/server.js
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - zain_net
+
+  # ---------------------------------------------------------------------------
+  # Gotenberg - self-hosted HTML/CSS -> PDF converter for invoices
+  # ---------------------------------------------------------------------------
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: zain_gotenberg
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    networks:
+      - zain_net
+    command:
+      - "gotenberg"
+      - "--chromium-disable-javascript=false"
+
+  # ---------------------------------------------------------------------------
+  # Cloudflare Tunnel - exposes n8n's webhook endpoints to the internet
+  # ---------------------------------------------------------------------------
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: zain_cloudflared
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:-paste_your_tunnel_token_here}
+    networks:
+      - zain_net
+    depends_on:
+      - n8n
+
+networks:
+  zain_net:
+    driver: bridge

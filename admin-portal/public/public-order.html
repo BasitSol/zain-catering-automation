@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zain Catering Services — Place Your Order</title>
+  <meta name="description" content="Submit your catering order request to Zain Catering Services. Fill out the form with your event details and we'll get back to you shortly.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand-primary: #b5391a;
+      --brand-primary-light: #d4523a;
+      --brand-primary-dark: #8a2b14;
+      --brand-primary-glow: rgba(181, 57, 26, 0.25);
+      --bg-body: #0a0b0f;
+      --bg-card: rgba(17, 19, 28, 0.85);
+      --bg-input: rgba(255, 255, 255, 0.04);
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-card: rgba(255, 255, 255, 0.08);
+      --border-input: rgba(255, 255, 255, 0.1);
+      --text-primary: #f0f0f5;
+      --text-secondary: #8b8da3;
+      --text-muted: #5a5c6e;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --transition-fast: 0.15s ease;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-body);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      overflow-x: hidden;
+    }
+
+    /* Background ambient glow */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -20%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 700px;
+      background: radial-gradient(circle, rgba(181, 57, 26, 0.1) 0%, transparent 65%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─── Form Container ──────────────────────────────────────────────── */
+    .form-card {
+      width: 100%;
+      max-width: 620px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03) inset;
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    /* ─── Brand Header ────────────────────────────────────────────────── */
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 28px 32px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .brand-logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-dark));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 16px;
+      color: white;
+      letter-spacing: -0.5px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 16px var(--brand-primary-glow);
+    }
+
+    .brand-text h1 {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: var(--text-primary);
+    }
+
+    .brand-text span {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+
+    /* ─── Form Header ─────────────────────────────────────────────────── */
+    .form-intro {
+      padding: 24px 32px 0 32px;
+    }
+
+    .form-intro h2 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .form-intro p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* ─── Form Body ───────────────────────────────────────────────────── */
+    .form-body {
+      padding: 28px 32px 32px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    /* ─── Section Divider ─────────────────────────────────────────────── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--brand-primary-light);
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(181, 57, 26, 0.15);
+      margin-top: 4px;
+    }
+
+    /* ─── Form Row (2 columns) ────────────────────────────────────────── */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .form-row.full {
+      grid-template-columns: 1fr;
+    }
+
+    /* ─── Field Group ─────────────────────────────────────────────────── */
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .field-label .required {
+      color: var(--brand-primary-light);
+      font-size: 14px;
+    }
+
+    .field-input {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border-input);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 14px;
+      font-weight: 400;
+      padding: 10px 14px;
+      outline: none;
+      transition: all var(--transition-fast);
+      font-family: inherit;
+    }
+
+    .field-input:focus {
+      border-color: var(--brand-primary);
+      box-shadow: 0 0 0 3px var(--brand-primary-glow);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .field-input::placeholder {
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    textarea.field-input {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    select.field-input {
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b8da3' stroke-width='2' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+
+    select.field-input option {
+      background: #181a25;
+      color: var(--text-primary);
+    }
+
+    .field-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: -2px;
+    }
+
+    /* ─── Submit Button ────────────────────────────────────────────────── */
+    .submit-section {
+      padding: 0 32px 32px 32px;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 14px 24px;
+      border: none;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-dark));
+      color: white;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      letter-spacing: 0.2px;
+    }
+
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px var(--brand-primary-glow);
+    }
+
+    .submit-btn:active {
+      transform: translateY(0);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .submit-btn .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.25);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Success State ────────────────────────────────────────────────── */
+    .success-card {
+      text-align: center;
+      padding: 60px 32px;
+    }
+
+    .success-card svg {
+      margin-bottom: 20px;
+    }
+
+    .success-card h3 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+
+    .success-card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    /* ─── Error State ─────────────────────────────────────────────────── */
+    .field-error {
+      border-color: #ef4444 !important;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+    }
+
+    .error-msg {
+      font-size: 11px;
+      color: #f87171;
+      margin-top: 2px;
+      display: none;
+    }
+
+    .error-msg.visible {
+      display: block;
+    }
+
+    /* ─── Footer ──────────────────────────────────────────────────────── */
+    .page-footer {
+      margin-top: 28px;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      z-index: 1;
+    }
+
+    /* ─── Responsive ──────────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      body { padding: 16px 12px; }
+      .brand-header { padding: 20px 20px; }
+      .form-intro { padding: 20px 20px 0 20px; }
+      .form-body { padding: 20px 20px 24px 20px; gap: 18px; }
+      .submit-section { padding: 0 20px 24px 20px; }
+      .form-row { grid-template-columns: 1fr; gap: 18px; }
+      .form-intro h2 { font-size: 19px; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="form-card" id="form-card">
+
+    <!-- Brand Header -->
+    <div class="brand-header">
+      <div class="brand-logo">ZC</div>
+      <div class="brand-text">
+        <h1>Zain Catering Services</h1>
+        <span>Lahore, Pakistan</span>
+      </div>
+    </div>
+
+    <!-- Intro -->
+    <div class="form-intro">
+      <h2>Place Your Order</h2>
+      <p>Fill in your event details below. Our team will review and get back to you shortly.</p>
+    </div>
+
+    <!-- Form -->
+    <form id="order-form" autocomplete="off">
+      <div class="form-body">
+
+        <!-- Personal Details Section -->
+        <div class="section-label">Your Details</div>
+
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label" for="full-name">Full Name <span class="required">*</span></label>
+            <input type="text" class="field-input" id="full-name" name="Full Name" placeholder="e.g. Ahmed Khan" required>
+            <span class="error-msg" id="err-full-name">Please enter your name</span>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="phone">Phone Number <span class="required">*</span></label>
+            <input type="tel" class="field-input" id="phone" name="Phone Number" placeholder="e.g. 03001234567" required>
+            <span class="error-msg" id="err-phone">Please enter your phone number</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label" for="whatsapp">WhatsApp Number</label>
+            <input type="tel" class="field-input" id="whatsapp" name="WhatsApp Number (if different)" placeholder="Leave blank if same as phone">
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="email">Email Address</label>
+            <input type="email" class="field-input" id="email" name="Email Address (for invoice delivery)" placeholder="e.g. you@example.com">
+            <span class="field-hint">For invoice delivery (optional)</span>
+          </div>
+        </div>
+
+        <!-- Event Details Section -->
+        <div class="section-label">Event Details</div>
+
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label" for="event-date">Event Date <span class="required">*</span></label>
+            <input type="date" class="field-input" id="event-date" name="Event Date" required>
+            <span class="error-msg" id="err-event-date">Please select the event date</span>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="guests">Number of Guests <span class="required">*</span></label>
+            <input type="number" class="field-input" id="guests" name="Number of Guests" placeholder="e.g. 150" min="1" required>
+            <span class="error-msg" id="err-guests">Please enter the guest count</span>
+          </div>
+        </div>
+
+        <div class="form-row full">
+          <div class="field-group">
+            <label class="field-label" for="venue">Venue Address <span class="required">*</span></label>
+            <textarea class="field-input" id="venue" name="Venue Address" placeholder="e.g. Block H3, Johar Town, Lahore" required></textarea>
+            <span class="error-msg" id="err-venue">Please enter the venue address</span>
+          </div>
+        </div>
+
+        <!-- Preferences Section -->
+        <div class="section-label">Preferences</div>
+
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label" for="sound">Sound System <span class="required">*</span></label>
+            <select class="field-input" id="sound" name="Sound System" required>
+              <option value="" disabled selected>Select an option</option>
+              <option value="None">None</option>
+              <option value="Basic">Basic</option>
+              <option value="Premium">Premium</option>
+            </select>
+            <span class="error-msg" id="err-sound">Please select a sound system option</span>
+          </div>
+          <div class="field-group">
+            <!-- spacer for alignment on desktop -->
+          </div>
+        </div>
+
+        <div class="form-row full">
+          <div class="field-group">
+            <label class="field-label" for="notes">Special Notes / Requirements</label>
+            <textarea class="field-input" id="notes" name="Special Notes" placeholder="e.g. Specific color themes, extra tables, dietary requirements..." rows="3"></textarea>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Submit -->
+      <div class="submit-section">
+        <button type="submit" class="submit-btn" id="submit-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+          Submit Order Request
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="page-footer">
+    Powered by Zain Catering Services &bull; Lahore, Pakistan
+  </div>
+
+  <script>
+    const form = document.getElementById('order-form');
+    const submitBtn = document.getElementById('submit-btn');
+    let isSubmitting = false;
+
+    // Required field IDs and their error message IDs
+    const requiredFields = [
+      { id: 'full-name', errId: 'err-full-name' },
+      { id: 'phone', errId: 'err-phone' },
+      { id: 'event-date', errId: 'err-event-date' },
+      { id: 'guests', errId: 'err-guests' },
+      { id: 'venue', errId: 'err-venue' },
+      { id: 'sound', errId: 'err-sound' }
+    ];
+
+    // Clear errors on input
+    requiredFields.forEach(function(f) {
+      var el = document.getElementById(f.id);
+      el.addEventListener('input', function() {
+        el.classList.remove('field-error');
+        document.getElementById(f.errId).classList.remove('visible');
+      });
+      el.addEventListener('change', function() {
+        el.classList.remove('field-error');
+        document.getElementById(f.errId).classList.remove('visible');
+      });
+    });
+
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      if (isSubmitting) return;
+
+      // Validate required fields
+      let hasError = false;
+      requiredFields.forEach(function(f) {
+        var el = document.getElementById(f.id);
+        if (!el.value.trim()) {
+          el.classList.add('field-error');
+          document.getElementById(f.errId).classList.add('visible');
+          if (!hasError) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          hasError = true;
+        }
+      });
+
+      if (hasError) return;
+
+      // Build payload
+      var payload = {
+        'Full Name': document.getElementById('full-name').value.trim(),
+        'Phone Number': document.getElementById('phone').value.trim(),
+        'WhatsApp Number (if different)': document.getElementById('whatsapp').value.trim(),
+        'Email Address (for invoice delivery)': document.getElementById('email').value.trim(),
+        'Event Date': document.getElementById('event-date').value,
+        'Venue Address': document.getElementById('venue').value.trim(),
+        'Number of Guests': Number(document.getElementById('guests').value),
+        'Sound System': document.getElementById('sound').value,
+        'Special Notes': document.getElementById('notes').value.trim()
+      };
+
+      // Submit
+      isSubmitting = true;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<div class="spinner"></div> Submitting...';
+
+      try {
+        var response = await fetch('/api/forms/client-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        var result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Server error');
+
+        // Success
+        document.getElementById('form-card').innerHTML =
+          '<div class="brand-header">' +
+            '<div class="brand-logo">ZC</div>' +
+            '<div class="brand-text">' +
+              '<h1>Zain Catering Services</h1>' +
+              '<span>Lahore, Pakistan</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="success-card">' +
+            '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2">' +
+              '<path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>' +
+              '<polyline points="22 4 12 14.01 9 11.01"/>' +
+            '</svg>' +
+            '<h3>Order Submitted Successfully!</h3>' +
+            '<p>Thank you, <strong>' + payload['Full Name'] + '</strong>! We have received your event details. Our team will review your request and contact you shortly on <strong>' + payload['Phone Number'] + '</strong>.</p>' +
+          '</div>';
+
+      } catch (err) {
+        alert('Submission Failed: ' + err.message);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML =
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>' +
+          ' Submit Order Request';
+        isSubmitting = false;
+      }
+    });
+  </script>
+</body>
+</html>

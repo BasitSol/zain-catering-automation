@@ -1,0 +1,1266 @@
+{
+  "name": "Zain Catering Services - Complete Automation (All Modules)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "client-order",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "n1-client-form",
+      "name": "Client Order Form",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "internal-order",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "n2-internal-form",
+      "name": "Internal Order Form",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Tag which channel this order came in through\nreturn items.map(item => {\n  item.json.__source = 'client_form';\n  return item;\n});"
+      },
+      "id": "n3-tag-client",
+      "name": "Tag Source: Client Form",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  item.json.__source = 'internal_form';\n  return item;\n});"
+      },
+      "id": "n4-tag-internal",
+      "name": "Tag Source: Internal Form",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize form fields into a clean, predictable structure.\n// Handles both custom JSON webhooks and nested Typeform payloads.\nlet f = items[0].json.body || items[0].json;\n\n// Check if this is a Typeform webhook payload\nif (f && f.form_response) {\n  const answers = f.form_response.answers || [];\n  const fields = f.form_response.definition.fields || [];\n  const fieldMap = {};\n  for (const field of fields) {\n    fieldMap[field.id] = { ref: field.ref, title: field.title };\n  }\n  const parsed = {};\n  for (const ans of answers) {\n    const def = fieldMap[ans.field.id] || {};\n    const key = def.ref || def.title;\n    let val = null;\n    if (ans.type === 'text') val = ans.text;\n    else if (ans.type === 'number') val = ans.number;\n    else if (ans.type === 'choice') val = ans.choice.label;\n    else if (ans.type === 'date') val = ans.date;\n    else if (ans.type === 'email') val = ans.email;\n    else if (ans.type === 'phone_number') val = ans.phone_number;\n    else if (ans.type === 'boolean') val = ans.boolean;\n    if (key) parsed[key] = val;\n  }\n  f = parsed;\n}\n\nconst fullName = f['Full Name'] || f['name'] || '';\nconst phone = f['Phone Number'] || f['phone'] || '';\nconst whatsapp = f['WhatsApp Number (if different)'] || f['whatsapp_number'] || phone;\nconst email = f['Email Address (for invoice delivery)'] || f['email'] || null;\nconst eventDate = f['Event Date'] || f['event_date'] || '';\nconst venue = f['Venue Address'] || f['venue_address'] || '';\nconst guests = Number(f['Number of Guests'] || f['guest_count'] || 0);\nconst sound = f['Sound System'] || f['sound_system'] || 'None';\nconst notes = f['Special Notes'] || f['notes'] || '';\nconst source = f.__source || items[0].json.__source || 'client_form';\n\nreturn [{\n  json: {\n    name: fullName,\n    phone: phone,\n    whatsapp_number: whatsapp,\n    email: email,\n    event_date: eventDate,\n    venue_address: venue,\n    guest_count: guests,\n    notes: notes,\n    source: source,\n    sound_system: sound\n  }\n}];"
+      },
+      "id": "n5-normalize",
+      "name": "Normalize Order Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        210
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO clients (name, phone, whatsapp_number, email, address)\nVALUES ($1, $2, $3, $4, $5)\nON CONFLICT (phone) DO UPDATE SET name = EXCLUDED.name, email = COALESCE(EXCLUDED.email, clients.email)\nRETURNING id;",
+        "options": {
+          "queryReplacement": "={{ [$json.name, $json.phone, $json.whatsapp_number, $json.email, $json.venue_address] }}"
+        }
+      },
+      "id": "n6-upsert-client",
+      "name": "Upsert Client",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        210
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Zain Catering Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT nextval('order_ref_seq') AS seq;"
+      },
+      "id": "n7-next-ref",
+      "name": "Get Next Order Ref",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        560,
+        210
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Zain Catering Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const year = new Date().getFullYear();\nconst seq = String($input.first().json.seq).padStart(4, '0');\nconst order_ref = `ZC-${year}-${seq}`;\n\nconst original = $('Normalize Order Data').first().json;\nconst clientId = $('Upsert Client').first().json.id;\n\nreturn [{\n  json: { ...original, order_ref, client_id: clientId }\n}];"
+      },
+      "id": "n8-format-ref",
+      "name": "Format Order Ref + Merge Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        210
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO orders (order_ref, client_id, event_date, guest_count, venue_address, notes, status, source, sound_system)\nVALUES ($1, $2, $3, $4, $5, $6, 'new', $7, $8)\nRETURNING id, order_ref;",
+        "options": {
+          "queryReplacement": "={{ [$json.order_ref, $json.client_id, $json.event_date, $json.guest_count, $json.venue_address, $json.notes, $json.source, $json.sound_system] }}"
+        }
+      },
+      "id": "n9-insert-order",
+      "name": "Insert Order",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1040,
+        210
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Zain Catering Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE clients SET last_order_at = now() WHERE id = $1;",
+        "options": {
+          "queryReplacement": "={{ [$('Format Order Ref + Merge Context').first().json.client_id] }}"
+        }
+      },
+      "id": "n10-update-last-order",
+      "name": "Update Client Last Order Date",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1280,
+        100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Zain Catering Postgres"
+        }
+      }
+    },
+
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "confirm-order",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "c1-trigger",
+      "name": "Confirm Order Form",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handles both custom JSON webhooks and nested Typeform payloads.\nlet f = items[0].json.body || items[0].json;\n\n// Check if this is a Typeform webhook payload\nif (f && f.form_response) {\n  const answers = f.form_response.answers || [];\n  const fields = f.form_response.definition.fields || [];\n  const fieldMap = {};\n  for (const field of fields) {\n    fieldMap[field.id] = { ref: field.ref, title: field.title };\n  }\n  const parsed = {};\n  for (const ans of answers) {\n    const def = fieldMap[ans.field.id] || {};\n    const key = def.ref || def.title;\n    let val = null;\n    if (ans.type === 'text') val = ans.text;\n    else if (ans.type === 'number') val = ans.number;\n    else if (ans.type === 'choice') val = ans.choice.label;\n    else if (ans.type === 'date') val = ans.date;\n    else if (ans.type === 'email') val = ans.email;\n    else if (ans.type === 'phone_number') val = ans.phone_number;\n    else if (ans.type === 'boolean') val = ans.boolean;\n    if (key) parsed[key] = val;\n  }\n  f = parsed;\n}\n\nconst orderRef = (f['Order Ref (e.g. ZC-2026-0001)'] || f['Order Reference'] || f['order_ref'] || '').trim();\nconst menuPrice = Number(f['Menu Price per Person (PKR)'] || f['menu_price'] || 0);\nconst soundPrice = Number(f['Sound System Price (PKR)'] || f['sound_price'] || 0);\nconst otherCharges = Number(f['Setup/Tent/Other Charges (PKR)'] || f['other_charges'] || 0);\n\nconst agreedTotal = Number(f['Agreed Total Price (PKR)'] || f['agreed_total_price'] || (menuPrice * Number(f['Number of Guests'] || 1) + soundPrice + otherCharges));\nconst advancePaid = Number(f['Advance Paid Now (PKR, 0 if none)'] || f['Advance Amount (PKR)'] || f['advance_paid'] || 0);\nconst advanceMethod = (f['Advance Payment Method'] || f['Payment Method'] || f['advance_method'] || 'None').toLowerCase();\n\nreturn [{ json: {\n  order_ref: orderRef,\n  agreed_total_price: agreedTotal,\n  advance_paid: advancePaid,\n  advance_method: advanceMethod\n}}];"
+      },
+      "id": "c2-normalize",
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, client_id, event_date, guest_count FROM orders WHERE order_ref = $1;",
+        "options": {
+          "queryReplacement": "={{ [$json.order_ref] }}"
+        }
+      },
+      "id": "c3-find-order",
+      "name": "Find Order By Ref",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        80,
+        1200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Zain Catering Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE orders SET status = 'confirmed', confirmed_at = now() WHERE id = $1 RETURNING id, order_ref, client_id, event_date, guest_count;",
+        "options": {
+          "queryReplacement": "={{ [$('Find Order By Ref').first().json.id] }}"
+        }
+      },
+      "id": "c4-update-status",
+      "name": "Update Order Status: Confirmed",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        1200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Zain Catering Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT nextval('invoice_number_seq') AS seq;"
+      },
+      "id": "i1-next-invoice-num",
+      "name": "Get Next Invoice Number",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        600,
+        1450
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Zain Catering Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const year = new Date().getFullYear();\nconst seq = String($input.first().json.seq).padStart(4, '0');\nconst invoice_number = `ZC-INV-${year}-${seq}`;\nconst { agreed_total_price, advance_paid } = $('Normalize Input').first().json;\nconst orderId = $('Find Order By Ref').first().json.id;\nlet status = 'unpaid';\nif (advance_paid >= agreed_total_price) status = 'paid';\nelse if (advance_paid > 0) status = 'partial';\nreturn [{ json: { invoice_number, order_id: orderId, total: agreed_total_price, paid_amount: advance_paid, status } }];"
+      },
+      "id": "i2-format-invoice-num",
+      "name": "Format Invoice Number",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        1450
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO invoices (order_id, invoice_number, subtotal, total, paid_amount, status)\nVALUES ($1, $2, $3, $4, $5, $6)\nON CONFLICT (order_id) DO UPDATE SET\n  subtotal = EXCLUDED.subtotal,\n  total = EXCLUDED.total,\n  paid_amount = EXCLUDED.paid_amount,\n  status = EXCLUDED.status\nRETURNING id, invoice_number, order_id;",
+        "options": {
+          "queryReplacement": "={{ [$json.order_id, $json.invoice_number, $json.total, $json.total, $json.paid_amount, $json.status] }}"
+        }
+      },
+      "id": "i3-insert-invoice",
+      "name": "Insert Invoice",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1080,
+        1450
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Zain Catering Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Normalize Input').first().json.advance_paid }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "i4-if-advance-paid",
+      "name": "IF Advance Paid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        1450
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payments (invoice_id, amount, method, paid_at, is_promise) VALUES ($1, $2, $3, now(), false);",
+        "options": {
+          "queryReplacement": "={{ [$json.id, $('Normalize Input').first().json.advance_paid, $('Normalize Input').first().json.advance_method] }}"
+        }
+      },
+      "id": "i5-insert-advance-payment",
+      "name": "Insert Advance Payment",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1560,
+        1380
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Zain Catering Postgres"
+        }
+      }
+    },
+
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT o.order_ref, o.event_date, o.guest_count, o.venue_address, o.sound_system, c.name AS client_name, c.phone AS client_phone, c.email AS client_email, i.id AS invoice_id, i.invoice_number, i.total, i.paid_amount, i.balance, i.status, i.issued_at FROM orders o JOIN clients c ON c.id = o.client_id JOIN invoices i ON i.order_id = o.id WHERE o.id = $1;",
+        "options": {
+          "queryReplacement": "={{ [$('Insert Invoice').first().json.order_id] }}"
+        }
+      },
+      "id": "v2-get-invoice",
+      "name": "Get Invoice + Order + Client",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -160,
+        2100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Zain Catering Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const invoice = $('Get Invoice + Order + Client').first().json;\n\nconst template = `<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<style>\n  @page { margin: 0; }\n  body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #2b2b2b; margin: 0; padding: 40px; font-size: 13px; }\n  .header { display: flex; justify-content: space-between; border-bottom: 3px solid #b5391a; padding-bottom: 16px; margin-bottom: 24px; }\n  .brand { font-size: 22px; font-weight: 700; color: #b5391a; }\n  .brand-sub { font-size: 11px; color: #777; margin-top: 4px; }\n  .invoice-meta { text-align: right; font-size: 12px; }\n  .invoice-meta .label { color: #888; }\n  h2.section { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #b5391a; border-bottom: 1px solid #eee; padding-bottom: 4px; margin-top: 24px; margin-bottom: 10px; }\n  .client-block { display: flex; justify-content: space-between; gap: 20px; }\n  table { width: 100%; border-collapse: collapse; margin-top: 8px; }\n  th { text-align: left; background: #faf1ee; color: #b5391a; font-size: 11px; text-transform: uppercase; padding: 8px; }\n  td { padding: 8px; border-bottom: 1px solid #eee; font-size: 12.5px; }\n  .totals { width: 260px; margin-left: auto; margin-top: 16px; }\n  .totals td { padding: 6px 8px; }\n  .totals .grand { font-weight: 700; font-size: 15px; color: #b5391a; border-top: 2px solid #b5391a; }\n  .footer { margin-top: 40px; font-size: 10.5px; color: #999; text-align: center; }\n</style>\n</head>\n<body>\n\n  <div class=\"header\">\n    <div>\n      <div class=\"brand\">Zain Catering Services</div>\n      <div class=\"brand-sub\">Catering &amp; Event Arrangements</div>\n      <div class=\"brand-sub\">Lahore, Punjab, Pakistan &middot; +92 300 0000000</div>\n    </div>\n    <div class=\"invoice-meta\">\n      <div><span class=\"label\">Invoice #:</span> {{invoice_number}}</div>\n      <div><span class=\"label\">Order Ref:</span> {{order_ref}}</div>\n      <div><span class=\"label\">Issued:</span> {{issued_date}}</div>\n      <div><span class=\"label\">Event Date:</span> {{event_date}}</div>\n    </div>\n  </div>\n\n  <div class=\"client-block\">\n    <div style=\"flex: 1;\">\n      <h2 class=\"section\">Billed To</h2>\n      <strong>{{client_name}}</strong><br>\n      Phone: {{client_phone}}<br>\n    </div>\n    <div style=\"flex: 1; text-align:right;\">\n      <h2 class=\"section\">Event Details</h2>\n      Location / Venue: <strong>{{venue_address}}</strong><br>\n      Guests: <strong>{{guest_count}}</strong><br>\n      Payment Status: <strong>{{invoice_status}}</strong>\n    </div>\n  </div>\n\n  <h2 class=\"section\">Services &amp; Arrangements</h2>\n  <table>\n    <tr><th>Item</th><th>Quantity / Option</th></tr>\n    {{equipment_rows}}\n  </table>\n\n  <table class=\"totals\">\n    <tr><td>Total Amount</td><td style=\"text-align:right;\">PKR {{total}}</td></tr>\n    <tr><td>Paid</td><td style=\"text-align:right;\">PKR {{paid_amount}}</td></tr>\n    <tr class=\"grand\"><td>Balance Due</td><td style=\"text-align:right;\">PKR {{balance}}</td></tr>\n  </table>\n\n  <div class=\"footer\">\n    Thank you for choosing Zain Catering Services. Payments accepted via Cash, JazzCash, EasyPaisa, or Bank Transfer.\n  </div>\n\n</body>\n</html>`;\n\nconst equipmentRows = '<tr><td>Catering Services, Items</td><td>Included</td></tr>';\n\nlet html = template\n  .replace('{{invoice_number}}', invoice.invoice_number || '')\n  .replace('{{order_ref}}', invoice.order_ref || '')\n  .replace('{{issued_date}}', invoice.issued_at ? new Date(invoice.issued_at).toLocaleDateString('en-GB') : '')\n  .replace('{{event_date}}', invoice.event_date ? new Date(invoice.event_date).toLocaleDateString('en-GB') : '')\n  .replace('{{client_name}}', invoice.client_name || '')\n  .replace('{{client_phone}}', invoice.client_phone || '')\n  .replace('{{venue_address}}', invoice.venue_address || 'Not specified')\n  .replace('{{guest_count}}', invoice.guest_count || '')\n  .replace('{{invoice_status}}', (invoice.status || '').toUpperCase())\n  .replace('{{equipment_rows}}', equipmentRows)\n  .replace('{{total}}', Number(invoice.total || 0).toLocaleString())\n  .replace('{{paid_amount}}', Number(invoice.paid_amount || 0).toLocaleString())\n  .replace('{{balance}}', Number(invoice.balance || 0).toLocaleString());\n\nreturn [{ json: { invoice_id: invoice.invoice_id, invoice_number: invoice.invoice_number, client_name: invoice.client_name, html } }];"
+      },
+      "id": "v5-build-html",
+      "name": "Build Invoice HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        2100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Wrap the HTML string as binary data so it can be posted as a file to Gotenberg\nconst item = items[0].json;\nconst buffer = Buffer.from(item.html, 'utf-8');\nreturn [{\n  json: { invoice_id: item.invoice_id, invoice_number: item.invoice_number, client_name: item.client_name },\n  binary: {\n    index_html: await this.helpers.prepareBinaryData(buffer, 'index.html', 'text/html')\n  }\n}];"
+      },
+      "id": "v5b-to-binary",
+      "name": "Convert HTML String to Binary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        2100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://gotenberg:3000/forms/chromium/convert/html",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "files",
+              "inputDataFieldName": "index_html"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "v6-gotenberg",
+      "name": "Convert HTML to PDF (Gotenberg)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        560,
+        2100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "name": "={{ $('Build Invoice HTML').first().json.invoice_number }}.pdf",
+        "driveId": {
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "mode": "list",
+          "value": "root"
+        },
+        "options": {}
+      },
+      "id": "v6b-upload-drive",
+      "name": "Upload Invoice PDF to Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        680,
+        2100
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "3",
+          "name": "Zain Catering Google Drive"
+        }
+      },
+      "notesInFlow": true,
+      "notes": "Requires Google Drive OAuth2 credential to be connected once in n8n. Set folderId to a real shared 'Zain Catering Invoices' folder after setup."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE invoices SET pdf_url = $1 WHERE id = $2;",
+        "options": {
+          "queryReplacement": "={{ [$json.webViewLink || null, $('Build Invoice HTML').first().json.invoice_id] }}"
+        }
+      },
+      "id": "v7-update-pdf-url",
+      "name": "Update Invoice PDF URL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        800,
+        2100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Zain Catering Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Get Invoice + Order + Client').first().json.client_email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "v7b-if-has-email",
+      "name": "IF Client Has Email",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        920,
+        2100
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "automation@zaincatering.com",
+        "toEmail": "={{ $('Get Invoice + Order + Client').first().json.client_email }}",
+        "subject": "=Your Zain Catering Invoice - {{ $('Build Invoice HTML').first().json.invoice_number }}",
+        "text": "=Dear {{ $('Get Invoice + Order + Client').first().json.client_name }},\n\nThank you for choosing Zain Catering Services!\n\nInvoice Number: {{ $('Get Invoice + Order + Client').first().json.invoice_number }}\nOrder Ref: {{ $('Get Invoice + Order + Client').first().json.order_ref }}\nEvent Date: {{ $('Get Invoice + Order + Client').first().json.event_date }}\nVenue Location: {{ $('Get Invoice + Order + Client').first().json.venue_address }}\nTotal Price: PKR {{ $('Get Invoice + Order + Client').first().json.total }}\nPaid Amount: PKR {{ $('Get Invoice + Order + Client').first().json.paid_amount }}\nBalance Due: PKR {{ $('Get Invoice + Order + Client').first().json.balance }}\n\nDownload your official PDF invoice here: {{ $('Upload Invoice PDF to Drive').first().json.webViewLink }}\n\nBest regards,\nZain Catering Services",
+        "options": {},
+        "emailFormat": "html",
+        "html": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;\">\n  <div style=\"background-color: #b5391a; color: white; padding: 15px; border-radius: 6px 6px 0 0; text-align: center;\">\n    <h2 style=\"margin: 0;\">Zain Catering Services</h2>\n    <p style=\"margin: 5px 0 0 0; font-size: 14px;\">Invoice Confirmation &amp; Event Summary</p>\n  </div>\n  <div style=\"padding: 20px; color: #333;\">\n    <p>Dear <strong>{{ $('Get Invoice + Order + Client').first().json.client_name }}</strong>,</p>\n    <p>Thank you for choosing Zain Catering Services for your event! Here is your invoice summary and official PDF link.</p>\n    <div style=\"background-color: #faf1ee; border-left: 4px solid #b5391a; padding: 12px; margin: 15px 0;\">\n      <p style=\"margin: 3px 0;\"><strong>Invoice #:</strong> {{ $('Get Invoice + Order + Client').first().json.invoice_number }}</p>\n      <p style=\"margin: 3px 0;\"><strong>Order Ref:</strong> {{ $('Get Invoice + Order + Client').first().json.order_ref }}</p>\n      <p style=\"margin: 3px 0;\"><strong>Event Date:</strong> {{ $('Get Invoice + Order + Client').first().json.event_date }}</p>\n      <p style=\"margin: 3px 0;\"><strong>Venue Location:</strong> {{ $('Get Invoice + Order + Client').first().json.venue_address }}</p>\n      <p style=\"margin: 3px 0;\"><strong>Number of Guests:</strong> {{ $('Get Invoice + Order + Client').first().json.guest_count }}</p>\n    </div>\n    <table style=\"width: 100%; border-collapse: collapse; margin: 15px 0;\">\n      <tr style=\"border-bottom: 1px solid #ddd;\"><td style=\"padding: 8px 0; font-weight: bold;\">Total Price:</td><td style=\"padding: 8px 0; text-align: right; font-weight: bold;\">PKR {{ $('Get Invoice + Order + Client').first().json.total }}</td></tr>\n      <tr style=\"border-bottom: 1px solid #ddd;\"><td style=\"padding: 8px 0;\">Paid Amount:</td><td style=\"padding: 8px 0; text-align: right;\">PKR {{ $('Get Invoice + Order + Client').first().json.paid_amount }}</td></tr>\n      <tr style=\"border-bottom: 2px solid #b5391a;\"><td style=\"padding: 8px 0; font-weight: bold; color: #b5391a;\">Balance Due:</td><td style=\"padding: 8px 0; text-align: right; font-weight: bold; color: #b5391a;\">PKR {{ $('Get Invoice + Order + Client').first().json.balance }}</td></tr>\n    </table>\n    <div style=\"text-align: center; margin: 25px 0;\">\n      <a href=\"{{ $('Upload Invoice PDF to Drive').first().json.webViewLink }}\" style=\"background-color: #b5391a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;\">View / Download PDF Invoice</a>\n    </div>\n    <p style=\"font-size: 12px; color: #666; margin-top: 30px;\">If you have any questions regarding your invoice or catering arrangements, feel free to reply directly to this email or call us at +92 300 0000000.</p>\n  </div>\n</div>"
+      },
+      "id": "v8-email-client",
+      "name": "Email Invoice to Client",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1040,
+        2100
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "smtp": {
+          "id": "2",
+          "name": "Zain Catering SMTP"
+        }
+      },
+      "notesInFlow": true,
+      "notes": "If client_email is blank (email was optional on the form), this send will fail silently for that client - add an IF check before this node, or route to WhatsApp/SMS instead once that channel is set up."
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "log-payment",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "p1-trigger",
+      "name": "Log Payment Form",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        3100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handles both custom JSON webhooks and nested Typeform payloads.\nlet f = items[0].json.body || items[0].json;\n\n// Check if this is a Typeform webhook payload\nif (f && f.form_response) {\n  const answers = f.form_response.answers || [];\n  const fields = f.form_response.definition.fields || [];\n  const fieldMap = {};\n  for (const field of fields) {\n    fieldMap[field.id] = { ref: field.ref, title: field.title };\n  }\n  const parsed = {};\n  for (const ans of answers) {\n    const def = fieldMap[ans.field.id] || {};\n    const key = def.ref || def.title;\n    let val = null;\n    if (ans.type === 'text') val = ans.text;\n    else if (ans.type === 'number') val = ans.number;\n    else if (ans.type === 'choice') val = ans.choice.label;\n    else if (ans.type === 'date') val = ans.date;\n    else if (ans.type === 'email') val = ans.email;\n    else if (ans.type === 'phone_number') val = ans.phone_number;\n    else if (ans.type === 'boolean') val = ans.boolean;\n    if (key) parsed[key] = val;\n  }\n  f = parsed;\n}\n\nconst invoiceNum = (f['Invoice Number (e.g. ZC-INV-2026-0001)'] || f['Invoice Number'] || f['invoice_number'] || '').trim();\nconst entryType = f['Entry Type'] || f['Is this a Promise to Pay Later?'] || f['entry_type'] || '';\nconst isPromise = entryType.includes('Promise') || entryType.includes('Yes') || f['is_promise'] === true;\nconst amount = Number(f['Amount (PKR)'] || f['Payment Amount (PKR)'] || f['Promised Amount (PKR)'] || f['amount'] || 0);\nconst method = (f['Payment Method (leave blank if promise)'] || f['Payment Method'] || f['method'] || '').toLowerCase() || null;\nconst promisedDate = f['Promised Payment Date (only if promise)'] || f['Promised Date'] || f['promised_date'] || null;\n\nreturn [{ json: {\n  invoice_number: invoiceNum,\n  is_promise: isPromise,\n  amount: amount,\n  method: isPromise ? null : (method || 'cash'),\n  promised_date: promisedDate\n}}];"
+      },
+      "id": "p2-normalize-pay",
+      "name": "Normalize Payment Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        3100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, paid_amount, total FROM invoices WHERE invoice_number = $1;",
+        "options": {
+          "queryReplacement": "={{ [$json.invoice_number] }}"
+        }
+      },
+      "id": "p3-find-invoice",
+      "name": "Find Invoice",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        80,
+        3100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Zain Catering Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Normalize Payment Input').first().json.is_promise }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "p4-if-promise",
+      "name": "IF Is Promise",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        320,
+        3100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payments (invoice_id, amount, is_promise, promised_amount, promised_date, promise_status) VALUES ($1, 0, true, $2, $3, 'pending');",
+        "options": {
+          "queryReplacement": "={{ [$json.id, $('Normalize Payment Input').first().json.amount, $('Normalize Payment Input').first().json.promised_date] }}"
+        }
+      },
+      "id": "p5-insert-promise",
+      "name": "Insert Promise Record",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        560,
+        3000
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Zain Catering Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payments (invoice_id, amount, method, paid_at, is_promise) VALUES ($1, $2, $3, now(), false);",
+        "options": {
+          "queryReplacement": "={{ [$json.id, $('Normalize Payment Input').first().json.amount, $('Normalize Payment Input').first().json.method] }}"
+        }
+      },
+      "id": "p6-insert-payment",
+      "name": "Insert Actual Payment",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        560,
+        3200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Zain Catering Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE invoices SET paid_amount = paid_amount + $1, status = CASE WHEN (paid_amount + $1) >= total THEN 'paid' WHEN (paid_amount + $1) > 0 THEN 'partial' ELSE 'unpaid' END WHERE id = $2;",
+        "options": {
+          "queryReplacement": "={{ [$('Normalize Payment Input').first().json.amount, $('Find Invoice').first().json.id] }}"
+        }
+      },
+      "id": "p7-update-invoice",
+      "name": "Update Invoice Paid Amount",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        800,
+        3200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Zain Catering Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT i.id, i.invoice_number, i.total, i.paid_amount, i.balance, i.status, c.name AS client_name, c.email AS client_email, o.order_ref FROM invoices i JOIN orders o ON o.id = i.order_id JOIN clients c ON c.id = o.client_id WHERE i.id = $1;",
+        "options": {
+          "queryReplacement": "={{ [$('Find Invoice').first().json.id] }}"
+        }
+      },
+      "id": "p8-get-updated-invoice",
+      "name": "Get Updated Invoice & Client",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        960,
+        3200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Zain Catering Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "paid",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "p8b-if-paid-full",
+      "name": "IF Invoice Fully Paid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        3200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.client_email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "p8c-if-has-email",
+      "name": "IF Client Has Email (Paid)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1280,
+        3200
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "automation@zaincatering.com",
+        "toEmail": "={{ $json.client_email }}",
+        "subject": "=Payment Receipt - {{ $json.invoice_number }} Fully Paid",
+        "options": {},
+        "emailFormat": "html",
+        "html": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;\">\n  <div style=\"background-color: #10b981; color: white; padding: 15px; border-radius: 6px 6px 0 0; text-align: center;\">\n    <h2 style=\"margin: 0;\">Zain Catering Services</h2>\n    <p style=\"margin: 5px 0 0 0; font-size: 14px;\">Official Payment Receipt &mdash; Fully Paid</p>\n  </div>\n  <div style=\"padding: 20px; color: #333;\">\n    <p>Dear <strong>{{ $json.client_name }}</strong>,</p>\n    <p>We have received your payment. Your catering account is now <strong>FULLY PAID</strong>. Thank you!</p>\n    <div style=\"background-color: #ecfdf5; border-left: 4px solid #10b981; padding: 12px; margin: 15px 0;\">\n      <p style=\"margin: 3px 0;\"><strong>Invoice #:</strong> {{ $json.invoice_number }}</p>\n      <p style=\"margin: 3px 0;\"><strong>Order Ref:</strong> {{ $json.order_ref }}</p>\n      <p style=\"margin: 3px 0;\"><strong>Total Amount:</strong> PKR {{ $json.total }}</p>\n      <p style=\"margin: 3px 0;\"><strong>Total Paid:</strong> PKR {{ $json.paid_amount }}</p>\n      <p style=\"margin: 3px 0; color: #047857;\"><strong>Remaining Balance:</strong> PKR 0 (Paid in Full)</p>\n    </div>\n    <p style=\"font-size: 13px; color: #555;\">We look forward to serving your event! If you have any questions, feel free to reply directly to this email or call us at +92 300 0000000.</p>\n    <p style=\"font-size: 12px; color: #888; margin-top: 25px;\">Best regards,<br><strong>Zain Catering Services</strong></p>\n  </div>\n</div>"
+      },
+      "id": "p9-email-client-paid",
+      "name": "Email Paid Receipt to Client",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1440,
+        3200
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "smtp": {
+          "id": "2",
+          "name": "Zain Catering SMTP"
+        }
+      }
+    },
+
+    {
+      "parameters": {},
+      "id": "e1-error-trigger",
+      "name": "Global Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        5000
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO system_errors (node_name, error_msg, execution_id) VALUES ($1, $2, $3);",
+        "options": {
+          "queryReplacement": "={{ [$json.execution?.error?.node?.name || 'Unknown Node', $json.execution?.error?.message || 'Error occurred', String($json.execution?.id || '')] }}"
+        }
+      },
+      "id": "e2-log-error-db",
+      "name": "Log System Error to Database",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -160,
+        5000
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Zain Catering Postgres"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Client Order Form": {
+      "main": [
+        [
+          {
+            "node": "Tag Source: Client Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Internal Order Form": {
+      "main": [
+        [
+          {
+            "node": "Tag Source: Internal Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag Source: Client Form": {
+      "main": [
+        [
+          {
+            "node": "Normalize Order Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag Source: Internal Form": {
+      "main": [
+        [
+          {
+            "node": "Normalize Order Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Order Data": {
+      "main": [
+        [
+          {
+            "node": "Upsert Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Client": {
+      "main": [
+        [
+          {
+            "node": "Get Next Order Ref",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Next Order Ref": {
+      "main": [
+        [
+          {
+            "node": "Format Order Ref + Merge Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Order Ref + Merge Context": {
+      "main": [
+        [
+          {
+            "node": "Insert Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Order": {
+      "main": [
+        [
+          {
+            "node": "Update Client Last Order Date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm Order Form": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Find Order By Ref",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Order By Ref": {
+      "main": [
+        [
+          {
+            "node": "Get Next Invoice Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Next Invoice Number": {
+      "main": [
+        [
+          {
+            "node": "Format Invoice Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Invoice Number": {
+      "main": [
+        [
+          {
+            "node": "Insert Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Invoice": {
+      "main": [
+        [
+          {
+            "node": "IF Advance Paid",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Invoice + Order + Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Advance Paid": {
+      "main": [
+        [
+          {
+            "node": "Insert Advance Payment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Insert Advance Payment": {
+      "main": [
+        []
+      ]
+    },
+    "Build Invoice HTML": {
+      "main": [
+        [
+          {
+            "node": "Convert HTML String to Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert HTML String to Binary": {
+      "main": [
+        [
+          {
+            "node": "Convert HTML to PDF (Gotenberg)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert HTML to PDF (Gotenberg)": {
+      "main": [
+        [
+          {
+            "node": "Upload Invoice PDF to Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Invoice PDF to Drive": {
+      "main": [
+        [
+          {
+            "node": "Update Invoice PDF URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Invoice PDF URL": {
+      "main": [
+        [
+          {
+            "node": "IF Client Has Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Client Has Email": {
+      "main": [
+        [
+          {
+            "node": "Email Invoice to Client",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Order Status: Confirmed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Invoice to Client": {
+      "main": [
+        [
+          {
+            "node": "Update Order Status: Confirmed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Payment Form": {
+      "main": [
+        [
+          {
+            "node": "Normalize Payment Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Invoice": {
+      "main": [
+        [
+          {
+            "node": "IF Is Promise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Is Promise": {
+      "main": [
+        [
+          {
+            "node": "Insert Promise Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert Actual Payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Promise Record": {
+      "main": [
+        []
+      ]
+    },
+    "Insert Actual Payment": {
+      "main": [
+        [
+          {
+            "node": "Update Invoice Paid Amount",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Invoice Paid Amount": {
+      "main": [
+        [
+          {
+            "node": "Get Updated Invoice & Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Updated Invoice & Client": {
+      "main": [
+        [
+          {
+            "node": "IF Invoice Fully Paid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Invoice Fully Paid": {
+      "main": [
+        [
+          {
+            "node": "IF Client Has Email (Paid)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Client Has Email (Paid)": {
+      "main": [
+        [
+          {
+            "node": "Email Paid Receipt to Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Payment Input": {
+      "main": [
+        [
+          {
+            "node": "Find Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+
+    "Get Invoice + Order + Client": {
+      "main": [
+        [
+          {
+            "node": "Build Invoice HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Global Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Log System Error to Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

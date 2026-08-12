@@ -1,0 +1,13 @@
+# Secrets - never commit
+.env
+
+# Docker volume data - generated at runtime, not source
+n8n-data/
+postgres-data/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/settings.json
+*.log
+node_modules/
