@@ -26,7 +26,7 @@ services:
     region: singapore
     plan: free
     image:
-      url: docker.n8n.io/n8nio/n8n:latest
+      url: n8nio/n8n:latest
     envVars:
       - key: N8N_PORT
         value: "10000"
