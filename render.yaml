@@ -29,7 +29,7 @@ services:
       url: docker.n8n.io/n8nio/n8n:latest
     envVars:
       - key: N8N_PORT
-        value: 10000
+        value: "10000"
       - key: N8N_ENCRYPTION_KEY
         generateValue: true
       - key: DB_TYPE
