@@ -4,7 +4,7 @@ services:
   # ---------------------------------------------------------------------------
   - type: web
     name: zain-admin-portal
-    env: node
+    runtime: node
     region: singapore
     plan: free
     buildCommand: cd admin-portal && npm install
@@ -22,7 +22,7 @@ services:
   # ---------------------------------------------------------------------------
   - type: web
     name: zain-n8n
-    env: docker
+    runtime: image
     region: singapore
     plan: free
     image:
@@ -68,7 +68,7 @@ services:
   # ---------------------------------------------------------------------------
   - type: web
     name: zain-gotenberg
-    env: docker
+    runtime: image
     region: singapore
     plan: free
     image:
