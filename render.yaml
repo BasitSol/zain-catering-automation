@@ -28,7 +28,8 @@ services:
     env: docker
     region: singapore
     plan: free
-    dockerCommand: n8n
+    image:
+      url: docker.n8n.io/n8nio/n8n:latest
     envVars:
       - key: N8N_PORT
         value: 10000
@@ -73,8 +74,8 @@ services:
     env: docker
     region: singapore
     plan: free
-    dockerImage: gotenberg/gotenberg:8
-    dockerCommand: gotenberg --chromium-disable-javascript=false
+    image:
+      url: gotenberg/gotenberg:8
 
 databases:
   # ---------------------------------------------------------------------------
