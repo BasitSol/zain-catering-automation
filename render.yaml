@@ -28,6 +28,8 @@ services:
     image:
       url: n8nio/n8n:latest
     envVars:
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=384"
       - key: N8N_PORT
         value: "5678"
       - key: N8N_ENCRYPTION_KEY
