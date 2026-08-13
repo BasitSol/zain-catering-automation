@@ -15,7 +15,7 @@ services:
           name: zain-db
           property: connectionString
       - key: N8N_BASE_URL
-        value: http://zain-n8n:10000
+        value: http://zain-n8n:5678
 
   # ---------------------------------------------------------------------------
   # n8n Automation Engine
@@ -29,7 +29,7 @@ services:
       url: n8nio/n8n:latest
     envVars:
       - key: N8N_PORT
-        value: "10000"
+        value: "5678"
       - key: N8N_ENCRYPTION_KEY
         generateValue: true
       - key: DB_TYPE
