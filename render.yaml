@@ -15,7 +15,7 @@ services:
           name: zain-db
           property: connectionString
       - key: N8N_BASE_URL
-        value: http://zain-n8n:5678
+        value: https://zain-n8n-p0bx.onrender.com
 
   # ---------------------------------------------------------------------------
   # n8n Automation Engine
