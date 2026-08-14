@@ -30,6 +30,8 @@ services:
     envVars:
       - key: NODE_OPTIONS
         value: "--max-old-space-size=384"
+      - key: PORT
+        value: "5678"
       - key: N8N_PORT
         value: "5678"
       - key: N8N_ENCRYPTION_KEY
@@ -58,6 +60,8 @@ services:
           property: password
       - key: DB_POSTGRESDB_SCHEMA
         value: n8n_internal
+      - key: DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED
+        value: "false"
       - key: N8N_SECURE_COOKIE
         value: "false"
       - key: GENERIC_TIMEZONE
