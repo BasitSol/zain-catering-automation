@@ -343,8 +343,25 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+const fs = require('fs');
+
+// ─── Auto DB Schema Initialization ──────────────────────────────────────────
+async function initDbSchema() {
+  try {
+    const schemaPath = path.join(__dirname, '..', 'postgres-init', '01_schema.sql');
+    if (fs.existsSync(schemaPath)) {
+      const sql = fs.readFileSync(schemaPath, 'utf8');
+      await pool.query(sql);
+      console.log('✅ Database schema verified/initialized successfully');
+    }
+  } catch (err) {
+    console.error('⚠️ DB auto-init notice:', err.message);
+  }
+}
+
 // ─── Start Server ───────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Zain Catering Admin Portal running on http://0.0.0.0:${PORT}`);
+  await initDbSchema();
 });
