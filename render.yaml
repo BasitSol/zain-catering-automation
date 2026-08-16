@@ -79,6 +79,9 @@ services:
     plan: free
     image:
       url: gotenberg/gotenberg:8
+    envVars:
+      - key: PORT
+        value: "3000"
 
 databases:
   # ---------------------------------------------------------------------------
