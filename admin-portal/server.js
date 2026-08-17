@@ -333,6 +333,124 @@ app.post('/api/forms/log-payment', (req, res) => {
   proxyToN8n('log-payment', req.body, res);
 });
 
+// ─── PDF Invoice Generation (replaces Gotenberg) ───────────────────────────
+const PDFDocument = require('pdfkit');
+
+app.post('/api/generate-invoice-pdf', (req, res) => {
+  try {
+    const d = req.body;
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+
+    // Collect PDF into buffer
+    const chunks = [];
+    doc.on('data', chunk => chunks.push(chunk));
+    doc.on('end', () => {
+      const pdfBuffer = Buffer.concat(chunks);
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `inline; filename="${d.invoice_number || 'invoice'}.pdf"`,
+        'Content-Length': pdfBuffer.length
+      });
+      res.send(pdfBuffer);
+    });
+
+    const brandColor = '#b5391a';
+    const gray = '#555555';
+    const lightGray = '#999999';
+
+    // ── Header ──
+    doc.fontSize(22).fillColor(brandColor).font('Helvetica-Bold')
+       .text('Zain Catering Services', 50, 50);
+    doc.fontSize(10).fillColor(lightGray).font('Helvetica')
+       .text('Catering & Event Arrangements', 50, 76)
+       .text('Lahore, Punjab, Pakistan · +92 300 0000000', 50, 90);
+
+    // Invoice meta (right side)
+    const metaX = 370;
+    doc.fontSize(10).fillColor(gray).font('Helvetica');
+    doc.text(`Invoice #: ${d.invoice_number || ''}`, metaX, 50, { width: 180, align: 'right' });
+    doc.text(`Order Ref: ${d.order_ref || ''}`, metaX, 64, { width: 180, align: 'right' });
+    doc.text(`Issued: ${d.issued_date || ''}`, metaX, 78, { width: 180, align: 'right' });
+    doc.text(`Event Date: ${d.event_date || ''}`, metaX, 92, { width: 180, align: 'right' });
+
+    // Header line
+    doc.moveTo(50, 115).lineTo(545, 115).strokeColor(brandColor).lineWidth(2).stroke();
+
+    // ── Billed To ──
+    let y = 130;
+    doc.fontSize(10).fillColor(brandColor).font('Helvetica-Bold').text('BILLED TO', 50, y);
+    y += 16;
+    doc.fontSize(11).fillColor('#2b2b2b').font('Helvetica-Bold').text(d.client_name || '', 50, y);
+    y += 16;
+    doc.fontSize(10).fillColor(gray).font('Helvetica').text(`Phone: ${d.client_phone || ''}`, 50, y);
+
+    // ── Event Details (right side) ──
+    let ey = 130;
+    doc.fontSize(10).fillColor(brandColor).font('Helvetica-Bold').text('EVENT DETAILS', metaX, ey, { width: 180, align: 'right' });
+    ey += 16;
+    doc.fontSize(10).fillColor(gray).font('Helvetica');
+    doc.text(`Venue: ${d.venue_address || 'Not specified'}`, metaX, ey, { width: 180, align: 'right' });
+    ey += 14;
+    doc.text(`Guests: ${d.guest_count || ''}`, metaX, ey, { width: 180, align: 'right' });
+    ey += 14;
+    doc.text(`Status: ${(d.invoice_status || '').toUpperCase()}`, metaX, ey, { width: 180, align: 'right' });
+
+    // ── Services Table ──
+    y = 210;
+    doc.moveTo(50, y).lineTo(545, y).strokeColor('#eeeeee').lineWidth(1).stroke();
+    y += 6;
+    doc.fontSize(10).fillColor(brandColor).font('Helvetica-Bold').text('SERVICES & ARRANGEMENTS', 50, y);
+    y += 20;
+
+    // Table header
+    doc.rect(50, y, 495, 22).fill('#faf1ee');
+    doc.fontSize(9).fillColor(brandColor).font('Helvetica-Bold');
+    doc.text('ITEM', 58, y + 6);
+    doc.text('QUANTITY / OPTION', 350, y + 6, { width: 190, align: 'right' });
+    y += 28;
+
+    // Table row
+    doc.fontSize(10).fillColor('#2b2b2b').font('Helvetica');
+    doc.text('Catering Services, Items', 58, y + 4);
+    doc.text('Included', 350, y + 4, { width: 190, align: 'right' });
+    y += 22;
+    doc.moveTo(50, y).lineTo(545, y).strokeColor('#eeeeee').lineWidth(0.5).stroke();
+
+    // ── Totals ──
+    y += 30;
+    const totalsX = 350;
+    const valX = 440;
+    const fmt = (v) => `PKR ${Number(v || 0).toLocaleString()}`;
+
+    doc.fontSize(11).fillColor(gray).font('Helvetica');
+    doc.text('Total Amount', totalsX, y);
+    doc.text(fmt(d.total), valX, y, { width: 105, align: 'right' });
+    y += 22;
+    doc.text('Paid', totalsX, y);
+    doc.text(fmt(d.paid_amount), valX, y, { width: 105, align: 'right' });
+    y += 22;
+
+    // Grand total line
+    doc.moveTo(totalsX, y).lineTo(545, y).strokeColor(brandColor).lineWidth(2).stroke();
+    y += 8;
+    doc.fontSize(14).fillColor(brandColor).font('Helvetica-Bold');
+    doc.text('Balance Due', totalsX, y);
+    doc.text(fmt(d.balance), valX, y, { width: 105, align: 'right' });
+
+    // ── Footer ──
+    doc.fontSize(9).fillColor(lightGray).font('Helvetica');
+    doc.text(
+      'Thank you for choosing Zain Catering Services. Payments accepted via Cash, JazzCash, EasyPaisa, or Bank Transfer.',
+      50, 700, { width: 495, align: 'center' }
+    );
+
+    doc.end();
+  } catch (err) {
+    console.error('PDF generation error:', err);
+    res.status(500).json({ error: 'PDF generation failed', details: err.message });
+  }
+});
+
 // ─── Public Client Order Form ───────────────────────────────────────────────
 app.get('/order', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'public-order.html'));

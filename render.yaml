@@ -69,20 +69,6 @@ services:
       - key: TZ
         value: Asia/Karachi
 
-  # ---------------------------------------------------------------------------
-  # Gotenberg PDF Converter Engine
-  # ---------------------------------------------------------------------------
-  - type: web
-    name: zain-gotenberg
-    runtime: image
-    region: singapore
-    plan: free
-    image:
-      url: gotenberg/gotenberg:8
-    envVars:
-      - key: PORT
-        value: "3000"
-
 databases:
   # ---------------------------------------------------------------------------
   # Managed PostgreSQL Database

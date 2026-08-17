@@ -385,7 +385,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const invoice = $('Get Invoice + Order + Client').first().json;\n\nconst template = `<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<style>\n  @page { margin: 0; }\n  body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #2b2b2b; margin: 0; padding: 40px; font-size: 13px; }\n  .header { display: flex; justify-content: space-between; border-bottom: 3px solid #b5391a; padding-bottom: 16px; margin-bottom: 24px; }\n  .brand { font-size: 22px; font-weight: 700; color: #b5391a; }\n  .brand-sub { font-size: 11px; color: #777; margin-top: 4px; }\n  .invoice-meta { text-align: right; font-size: 12px; }\n  .invoice-meta .label { color: #888; }\n  h2.section { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #b5391a; border-bottom: 1px solid #eee; padding-bottom: 4px; margin-top: 24px; margin-bottom: 10px; }\n  .client-block { display: flex; justify-content: space-between; gap: 20px; }\n  table { width: 100%; border-collapse: collapse; margin-top: 8px; }\n  th { text-align: left; background: #faf1ee; color: #b5391a; font-size: 11px; text-transform: uppercase; padding: 8px; }\n  td { padding: 8px; border-bottom: 1px solid #eee; font-size: 12.5px; }\n  .totals { width: 260px; margin-left: auto; margin-top: 16px; }\n  .totals td { padding: 6px 8px; }\n  .totals .grand { font-weight: 700; font-size: 15px; color: #b5391a; border-top: 2px solid #b5391a; }\n  .footer { margin-top: 40px; font-size: 10.5px; color: #999; text-align: center; }\n</style>\n</head>\n<body>\n\n  <div class=\"header\">\n    <div>\n      <div class=\"brand\">Zain Catering Services</div>\n      <div class=\"brand-sub\">Catering &amp; Event Arrangements</div>\n      <div class=\"brand-sub\">Lahore, Punjab, Pakistan &middot; +92 300 0000000</div>\n    </div>\n    <div class=\"invoice-meta\">\n      <div><span class=\"label\">Invoice #:</span> {{invoice_number}}</div>\n      <div><span class=\"label\">Order Ref:</span> {{order_ref}}</div>\n      <div><span class=\"label\">Issued:</span> {{issued_date}}</div>\n      <div><span class=\"label\">Event Date:</span> {{event_date}}</div>\n    </div>\n  </div>\n\n  <div class=\"client-block\">\n    <div style=\"flex: 1;\">\n      <h2 class=\"section\">Billed To</h2>\n      <strong>{{client_name}}</strong><br>\n      Phone: {{client_phone}}<br>\n    </div>\n    <div style=\"flex: 1; text-align:right;\">\n      <h2 class=\"section\">Event Details</h2>\n      Location / Venue: <strong>{{venue_address}}</strong><br>\n      Guests: <strong>{{guest_count}}</strong><br>\n      Payment Status: <strong>{{invoice_status}}</strong>\n    </div>\n  </div>\n\n  <h2 class=\"section\">Services &amp; Arrangements</h2>\n  <table>\n    <tr><th>Item</th><th>Quantity / Option</th></tr>\n    {{equipment_rows}}\n  </table>\n\n  <table class=\"totals\">\n    <tr><td>Total Amount</td><td style=\"text-align:right;\">PKR {{total}}</td></tr>\n    <tr><td>Paid</td><td style=\"text-align:right;\">PKR {{paid_amount}}</td></tr>\n    <tr class=\"grand\"><td>Balance Due</td><td style=\"text-align:right;\">PKR {{balance}}</td></tr>\n  </table>\n\n  <div class=\"footer\">\n    Thank you for choosing Zain Catering Services. Payments accepted via Cash, JazzCash, EasyPaisa, or Bank Transfer.\n  </div>\n\n</body>\n</html>`;\n\nconst equipmentRows = '<tr><td>Catering Services, Items</td><td>Included</td></tr>';\n\nlet html = template\n  .replace('{{invoice_number}}', invoice.invoice_number || '')\n  .replace('{{order_ref}}', invoice.order_ref || '')\n  .replace('{{issued_date}}', invoice.issued_at ? new Date(invoice.issued_at).toLocaleDateString('en-GB') : '')\n  .replace('{{event_date}}', invoice.event_date ? new Date(invoice.event_date).toLocaleDateString('en-GB') : '')\n  .replace('{{client_name}}', invoice.client_name || '')\n  .replace('{{client_phone}}', invoice.client_phone || '')\n  .replace('{{venue_address}}', invoice.venue_address || 'Not specified')\n  .replace('{{guest_count}}', invoice.guest_count || '')\n  .replace('{{invoice_status}}', (invoice.status || '').toUpperCase())\n  .replace('{{equipment_rows}}', equipmentRows)\n  .replace('{{total}}', Number(invoice.total || 0).toLocaleString())\n  .replace('{{paid_amount}}', Number(invoice.paid_amount || 0).toLocaleString())\n  .replace('{{balance}}', Number(invoice.balance || 0).toLocaleString());\n\nreturn [{ json: { invoice_id: invoice.invoice_id, invoice_number: invoice.invoice_number, client_name: invoice.client_name, html } }];"
+        "jsCode": "const invoice = $('Get Invoice + Order + Client').first().json;\n\n// Format dates\nconst issuedDate = invoice.issued_at ? new Date(invoice.issued_at).toLocaleDateString('en-GB') : '';\nconst eventDate = invoice.event_date ? new Date(invoice.event_date).toLocaleDateString('en-GB') : '';\n\n// Call admin portal's built-in PDF generator\nconst response = await this.helpers.httpRequest({\n  method: 'POST',\n  url: (process.env.ADMIN_PORTAL_URL || 'https://zain-admin-portal.onrender.com') + '/api/generate-invoice-pdf',\n  headers: { 'Content-Type': 'application/json' },\n  body: {\n    invoice_number: invoice.invoice_number || '',\n    order_ref: invoice.order_ref || '',\n    issued_date: issuedDate,\n    event_date: eventDate,\n    client_name: invoice.client_name || '',\n    client_phone: invoice.client_phone || '',\n    venue_address: invoice.venue_address || 'Not specified',\n    guest_count: invoice.guest_count || '',\n    invoice_status: invoice.status || '',\n    total: invoice.total || 0,\n    paid_amount: invoice.paid_amount || 0,\n    balance: invoice.balance || 0\n  },\n  encoding: 'arraybuffer',\n  returnFullResponse: false\n});\n\nconst buffer = Buffer.from(response);\nreturn [{\n  json: {\n    invoice_id: invoice.invoice_id,\n    invoice_number: invoice.invoice_number,\n    client_name: invoice.client_name\n  },\n  binary: {\n    data: await this.helpers.prepareBinaryData(buffer, (invoice.invoice_number || 'invoice') + '.pdf', 'application/pdf')\n  }\n}];"
       },
       "id": "v5-build-html",
       "name": "Build Invoice HTML",
@@ -393,52 +393,6 @@
       "typeVersion": 2,
       "position": [
         320,
-        2100
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Wrap the HTML string as binary data so it can be posted as a file to Gotenberg\nconst item = items[0].json;\nconst buffer = Buffer.from(item.html, 'utf-8');\nreturn [{\n  json: { invoice_id: item.invoice_id, invoice_number: item.invoice_number, client_name: item.client_name },\n  binary: {\n    index_html: await this.helpers.prepareBinaryData(buffer, 'index.html', 'text/html')\n  }\n}];"
-      },
-      "id": "v5b-to-binary",
-      "name": "Convert HTML String to Binary",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        440,
-        2100
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://zain-gotenberg.onrender.com/forms/chromium/convert/html",
-        "sendBody": true,
-        "specifyBody": "keypair",
-        "contentType": "multipart-form-data",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "parameterType": "formBinaryData",
-              "name": "files",
-              "inputDataFieldName": "index_html"
-            }
-          ]
-        },
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "file"
-            }
-          }
-        }
-      },
-      "id": "v6-gotenberg",
-      "name": "Convert HTML to PDF (Gotenberg)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        560,
         2100
       ],
       "retryOnFail": true,
@@ -1046,28 +1000,6 @@
       ]
     },
     "Build Invoice HTML": {
-      "main": [
-        [
-          {
-            "node": "Convert HTML String to Binary",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Convert HTML String to Binary": {
-      "main": [
-        [
-          {
-            "node": "Convert HTML to PDF (Gotenberg)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Convert HTML to PDF (Gotenberg)": {
       "main": [
         [
           {
