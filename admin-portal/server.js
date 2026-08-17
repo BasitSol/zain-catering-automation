@@ -306,14 +306,18 @@ async function proxyToN8n(path, payload, res) {
     }
 
     if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`n8n responded with ${response.status}: ${text}`);
+      let text = await response.text();
+      // Strip HTML tags if n8n or Render returns an HTML error page (e.g. 502 Bad Gateway)
+      if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+        text = `Service returned HTTP ${response.status} (n8n container restarting or warming up)`;
+      }
+      throw new Error(text);
     }
     
     res.json({ success: true, message: 'Form submitted successfully!' });
   } catch (err) {
     console.error(`Proxy error for ${path}:`, err);
-    res.status(500).json({ error: `Failed to submit form to automation engine: ${err.message}` });
+    res.status(500).json({ error: err.message });
   }
 }
 

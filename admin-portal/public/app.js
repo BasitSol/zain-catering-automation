@@ -968,7 +968,14 @@ async function submitWizard() {
       body: JSON.stringify(wizardState.answers)
     });
 
-    const result = await response.json();
+    let result = {};
+    const text = await response.text();
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      result = { error: text.includes('<!DOCTYPE') ? 'Service warming up. Please try submitting again in a moment.' : text };
+    }
+
     if (!response.ok) throw new Error(result.error || 'Server error');
 
     // Progress Bar Full
