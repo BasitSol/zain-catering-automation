@@ -487,37 +487,31 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://api.resend.com/emails",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer re_Gkbhe8GH_' + '3aNHYjFLVZo6YvGof9bHB7N5' }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  from: 'Zain Catering <onboarding@resend.dev>',\n  to: [ $('Get Invoice + Order + Client').first().json.client_email ],\n  subject: 'Your Zain Catering Invoice - ' + $('Get Invoice + Order + Client').first().json.invoice_number,\n  html: '<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;\"><div style=\"background-color: #b5391a; color: white; padding: 15px; border-radius: 6px 6px 0 0; text-align: center;\"><h2 style=\"margin: 0;\">Zain Catering Services</h2><p style=\"margin: 5px 0 0 0; font-size: 14px;\">Invoice Confirmation &amp; Event Summary</p></div><div style=\"padding: 20px; color: #333;\"><p>Dear <strong>' + ($('Get Invoice + Order + Client').first().json.client_name || '') + '</strong>,</p><p>Thank you for choosing Zain Catering Services for your event! Here is your invoice summary and official PDF link.</p><div style=\"background-color: #faf1ee; border-left: 4px solid #b5391a; padding: 12px; margin: 15px 0;\"><p style=\"margin: 3px 0;\"><strong>Invoice #:</strong> ' + ($('Get Invoice + Order + Client').first().json.invoice_number || '') + '</p><p style=\"margin: 3px 0;\"><strong>Order Ref:</strong> ' + ($('Get Invoice + Order + Client').first().json.order_ref || '') + '</p><p style=\"margin: 3px 0;\"><strong>Event Date:</strong> ' + ($('Get Invoice + Order + Client').first().json.event_date || '') + '</p><p style=\"margin: 3px 0;\"><strong>Venue Location:</strong> ' + ($('Get Invoice + Order + Client').first().json.venue_address || '') + '</p><p style=\"margin: 3px 0;\"><strong>Number of Guests:</strong> ' + ($('Get Invoice + Order + Client').first().json.guest_count || '') + '</p></div><table style=\"width: 100%; border-collapse: collapse; margin: 15px 0;\"><tr style=\"border-bottom: 1px solid #ddd;\"><td style=\"padding: 8px 0; font-weight: bold;\">Total Price:</td><td style=\"padding: 8px 0; text-align: right; font-weight: bold;\">PKR ' + ($('Get Invoice + Order + Client').first().json.total || 0) + '</td></tr><tr style=\"border-bottom: 1px solid #ddd;\"><td style=\"padding: 8px 0;\">Paid Amount:</td><td style=\"padding: 8px 0; text-align: right;\">PKR ' + ($('Get Invoice + Order + Client').first().json.paid_amount || 0) + '</td></tr><tr style=\"border-bottom: 2px solid #b5391a;\"><td style=\"padding: 8px 0; font-weight: bold; color: #b5391a;\">Balance Due:</td><td style=\"padding: 8px 0; text-align: right; font-weight: bold; color: #b5391a;\">PKR ' + ($('Get Invoice + Order + Client').first().json.balance || 0) + '</td></tr></table><div style=\"text-align: center; margin: 25px 0;\"><a href=\"' + ($('Upload Invoice PDF to Drive').first().json.webViewLink || '#') + '\" style=\"background-color: #b5391a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;\">View / Download PDF Invoice</a></div><p style=\"font-size: 12px; color: #666; margin-top: 30px;\">If you have any questions regarding your invoice or catering arrangements, feel free to reply directly to this email or call us at +92 300 0000000.</p></div></div>'\n}) }}",
-        "options": {}
+        "fromEmail": "ab0614143@gmail.com",
+        "toEmail": "={{ $('Get Invoice + Order + Client').first().json.client_email }}",
+        "subject": "=Your Zain Catering Invoice - {{ $('Build Invoice HTML').first().json.invoice_number }}",
+        "text": "=Dear {{ $('Get Invoice + Order + Client').first().json.client_name }},\n\nThank you for choosing Zain Catering Services!\n\nInvoice Number: {{ $('Get Invoice + Order + Client').first().json.invoice_number }}\nOrder Ref: {{ $('Get Invoice + Order + Client').first().json.order_ref }}\nEvent Date: {{ $('Get Invoice + Order + Client').first().json.event_date }}\nVenue Location: {{ $('Get Invoice + Order + Client').first().json.venue_address }}\nTotal Price: PKR {{ $('Get Invoice + Order + Client').first().json.total }}\nPaid Amount: PKR {{ $('Get Invoice + Order + Client').first().json.paid_amount }}\nBalance Due: PKR {{ $('Get Invoice + Order + Client').first().json.balance }}\n\nDownload your official PDF invoice here: {{ $('Upload Invoice PDF to Drive').first().json.webViewLink }}\n\nBest regards,\nZain Catering Services",
+        "options": {},
+        "emailFormat": "html",
+        "html": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;\">\n  <div style=\"background-color: #b5391a; color: white; padding: 15px; border-radius: 6px 6px 0 0; text-align: center;\">\n    <h2 style=\"margin: 0;\">Zain Catering Services</h2>\n    <p style=\"margin: 5px 0 0 0; font-size: 14px;\">Invoice Confirmation &amp; Event Summary</p>\n  </div>\n  <div style=\"padding: 20px; color: #333;\">\n    <p>Dear <strong>{{ $('Get Invoice + Order + Client').first().json.client_name }}</strong>,</p>\n    <p>Thank you for choosing Zain Catering Services for your event! Here is your invoice summary and official PDF link.</p>\n    <div style=\"background-color: #faf1ee; border-left: 4px solid #b5391a; padding: 12px; margin: 15px 0;\">\n      <p style=\"margin: 3px 0;\"><strong>Invoice #:</strong> {{ $('Get Invoice + Order + Client').first().json.invoice_number }}</p>\n      <p style=\"margin: 3px 0;\"><strong>Order Ref:</strong> {{ $('Get Invoice + Order + Client').first().json.order_ref }}</p>\n      <p style=\"margin: 3px 0;\"><strong>Event Date:</strong> {{ $('Get Invoice + Order + Client').first().json.event_date }}</p>\n      <p style=\"margin: 3px 0;\"><strong>Venue Location:</strong> {{ $('Get Invoice + Order + Client').first().json.venue_address }}</p>\n      <p style=\"margin: 3px 0;\"><strong>Number of Guests:</strong> {{ $('Get Invoice + Order + Client').first().json.guest_count }}</p>\n    </div>\n    <table style=\"width: 100%; border-collapse: collapse; margin: 15px 0;\">\n      <tr style=\"border-bottom: 1px solid #ddd;\"><td style=\"padding: 8px 0; font-weight: bold;\">Total Price:</td><td style=\"padding: 8px 0; text-align: right; font-weight: bold;\">PKR {{ $('Get Invoice + Order + Client').first().json.total }}</td></tr>\n      <tr style=\"border-bottom: 1px solid #ddd;\"><td style=\"padding: 8px 0;\">Paid Amount:</td><td style=\"padding: 8px 0; text-align: right;\">PKR {{ $('Get Invoice + Order + Client').first().json.paid_amount }}</td></tr>\n      <tr style=\"border-bottom: 2px solid #b5391a;\"><td style=\"padding: 8px 0; font-weight: bold; color: #b5391a;\">Balance Due:</td><td style=\"padding: 8px 0; text-align: right; font-weight: bold; color: #b5391a;\">PKR {{ $('Get Invoice + Order + Client').first().json.balance }}</td></tr>\n    </table>\n    <div style=\"text-align: center; margin: 25px 0;\">\n      <a href=\"{{ $('Upload Invoice PDF to Drive').first().json.webViewLink }}\" style=\"background-color: #b5391a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;\">View / Download PDF Invoice</a>\n    </div>\n    <p style=\"font-size: 12px; color: #666; margin-top: 30px;\">If you have any questions regarding your invoice or catering arrangements, feel free to reply directly to this email or call us at +92 300 0000000.</p>\n  </div>\n</div>"
       },
       "id": "v8-email-client",
       "name": "Email Invoice to Client",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
       "position": [
         1040,
         2100
       ],
       "retryOnFail": true,
       "maxTries": 3,
-      "waitBetweenTries": 2000
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "smtp": {
+          "id": "2",
+          "name": "Zain Catering SMTP"
+        }
+      }
     },
     {
       "parameters": {
@@ -755,37 +749,30 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://api.resend.com/emails",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer re_Gkbhe8GH_' + '3aNHYjFLVZo6YvGof9bHB7N5' }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  from: 'Zain Catering <onboarding@resend.dev>',\n  to: [ $json.client_email ],\n  subject: 'Payment Receipt - ' + ($json.invoice_number || '') + ' Fully Paid',\n  html: '<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;\"><div style=\"background-color: #10b981; color: white; padding: 15px; border-radius: 6px 6px 0 0; text-align: center;\"><h2 style=\"margin: 0;\">Zain Catering Services</h2><p style=\"margin: 5px 0 0 0; font-size: 14px;\">Official Payment Receipt &mdash; Fully Paid</p></div><div style=\"padding: 20px; color: #333;\"><p>Dear <strong>' + ($json.client_name || '') + '</strong>,</p><p>We have received your payment. Your catering account is now <strong>FULLY PAID</strong>. Thank you!</p><div style=\"background-color: #ecfdf5; border-left: 4px solid #10b981; padding: 12px; margin: 15px 0;\"><p style=\"margin: 3px 0;\"><strong>Invoice #:</strong> ' + ($json.invoice_number || '') + '</p><p style=\"margin: 3px 0;\"><strong>Order Ref:</strong> ' + ($json.order_ref || '') + '</p><p style=\"margin: 3px 0;\"><strong>Total Amount:</strong> PKR ' + ($json.total || 0) + '</p><p style=\"margin: 3px 0;\"><strong>Total Paid:</strong> PKR ' + ($json.paid_amount || 0) + '</p><p style=\"margin: 3px 0; color: #047857;\"><strong>Remaining Balance:</strong> PKR 0 (Paid in Full)</p></div><p style=\"font-size: 13px; color: #555;\">We look forward to serving your event! If you have any questions, feel free to reply directly to this email or call us at +92 300 0000000.</p><p style=\"font-size: 12px; color: #888; margin-top: 25px;\">Best regards,<br><strong>Zain Catering Services</strong></p></div></div>'\n}) }}",
-        "options": {}
+        "fromEmail": "ab0614143@gmail.com",
+        "toEmail": "={{ $json.client_email }}",
+        "subject": "=Payment Receipt - {{ $json.invoice_number }} Fully Paid",
+        "options": {},
+        "emailFormat": "html",
+        "html": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;\">\n  <div style=\"background-color: #10b981; color: white; padding: 15px; border-radius: 6px 6px 0 0; text-align: center;\">\n    <h2 style=\"margin: 0;\">Zain Catering Services</h2>\n    <p style=\"margin: 5px 0 0 0; font-size: 14px;\">Official Payment Receipt &mdash; Fully Paid</p>\n  </div>\n  <div style=\"padding: 20px; color: #333;\">\n    <p>Dear <strong>{{ $json.client_name }}</strong>,</p>\n    <p>We have received your payment. Your catering account is now <strong>FULLY PAID</strong>. Thank you!</p>\n    <div style=\"background-color: #ecfdf5; border-left: 4px solid #10b981; padding: 12px; margin: 15px 0;\">\n      <p style=\"margin: 3px 0;\"><strong>Invoice #:</strong> {{ $json.invoice_number }}</p>\n      <p style=\"margin: 3px 0;\"><strong>Order Ref:</strong> {{ $json.order_ref }}</p>\n      <p style=\"margin: 3px 0;\"><strong>Total Amount:</strong> PKR {{ $json.total }}</p>\n      <p style=\"margin: 3px 0;\"><strong>Total Paid:</strong> PKR {{ $json.paid_amount }}</p>\n      <p style=\"margin: 3px 0; color: #047857;\"><strong>Remaining Balance:</strong> PKR 0 (Paid in Full)</p>\n    </div>\n    <p style=\"font-size: 13px; color: #555;\">We look forward to serving your event! If you have any questions, feel free to reply directly to this email or call us at +92 300 0000000.</p>\n    <p style=\"font-size: 12px; color: #888; margin-top: 25px;\">Best regards,<br><strong>Zain Catering Services</strong></p>\n  </div>\n</div>"
       },
       "id": "p9-email-client-paid",
       "name": "Email Paid Receipt to Client",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
       "position": [
         1440,
         3200
       ],
       "retryOnFail": true,
       "maxTries": 3,
-      "waitBetweenTries": 2000
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "smtp": {
+          "id": "2",
+          "name": "Zain Catering SMTP"
+        }
+      }
     },
 
     {
