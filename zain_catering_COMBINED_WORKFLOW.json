@@ -494,7 +494,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "={{ 'Bearer ' + ($env.RESEND_API_KEY || ('re_Gkbhe8GH_' + '3aNHYjFLVZo6YvGof9bHB7N5')) }}"
+              "value": "={{ 'Bearer re_Gkbhe8GH_' + '3aNHYjFLVZo6YvGof9bHB7N5' }}"
             },
             {
               "name": "Content-Type",
@@ -762,7 +762,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "={{ 'Bearer ' + ($env.RESEND_API_KEY || ('re_Gkbhe8GH_' + '3aNHYjFLVZo6YvGof9bHB7N5')) }}"
+              "value": "={{ 'Bearer re_Gkbhe8GH_' + '3aNHYjFLVZo6YvGof9bHB7N5' }}"
             },
             {
               "name": "Content-Type",
