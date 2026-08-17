@@ -506,7 +506,7 @@
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 2000,
-      "onError": "continueRegularOutput",
+
       "credentials": {
         "smtp": {
           "id": "2",
@@ -767,7 +767,7 @@
         1440,
         3200
       ],
-      "onError": "continueRegularOutput",
+
       "credentials": {
         "smtp": {
           "id": "2",
