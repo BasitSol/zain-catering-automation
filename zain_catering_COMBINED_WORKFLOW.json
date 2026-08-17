@@ -440,7 +440,10 @@
       "position": [
         560,
         2100
-      ]
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "parameters": {
@@ -546,6 +549,9 @@
         1040,
         2100
       ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
       "onError": "continueRegularOutput",
       "credentials": {
         "smtp": {
