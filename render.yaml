@@ -32,6 +32,8 @@ services:
         value: "--max-old-space-size=384 --dns-result-order=ipv4first"
       - key: N8N_DNS_RESULT_ORDER
         value: ipv4first
+      - key: N8N_RUNNERS_ENABLED
+        value: "false"
       - key: PORT
         value: "5678"
       - key: N8N_PORT
