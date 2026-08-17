@@ -487,7 +487,7 @@
     },
     {
       "parameters": {
-        "fromEmail": "automation@zaincatering.com",
+        "fromEmail": "ab061413@gmail.com",
         "toEmail": "={{ $('Get Invoice + Order + Client').first().json.client_email }}",
         "subject": "=Your Zain Catering Invoice - {{ $('Build Invoice HTML').first().json.invoice_number }}",
         "text": "=Dear {{ $('Get Invoice + Order + Client').first().json.client_name }},\n\nThank you for choosing Zain Catering Services!\n\nInvoice Number: {{ $('Get Invoice + Order + Client').first().json.invoice_number }}\nOrder Ref: {{ $('Get Invoice + Order + Client').first().json.order_ref }}\nEvent Date: {{ $('Get Invoice + Order + Client').first().json.event_date }}\nVenue Location: {{ $('Get Invoice + Order + Client').first().json.venue_address }}\nTotal Price: PKR {{ $('Get Invoice + Order + Client').first().json.total }}\nPaid Amount: PKR {{ $('Get Invoice + Order + Client').first().json.paid_amount }}\nBalance Due: PKR {{ $('Get Invoice + Order + Client').first().json.balance }}\n\nDownload your official PDF invoice here: {{ $('Upload Invoice PDF to Drive').first().json.webViewLink }}\n\nBest regards,\nZain Catering Services",
@@ -752,7 +752,7 @@
     },
     {
       "parameters": {
-        "fromEmail": "automation@zaincatering.com",
+        "fromEmail": "ab061413@gmail.com",
         "toEmail": "={{ $json.client_email }}",
         "subject": "=Payment Receipt - {{ $json.invoice_number }} Fully Paid",
         "options": {},
