@@ -334,117 +334,116 @@ app.post('/api/forms/log-payment', (req, res) => {
 });
 
 // ─── PDF Invoice Generation (replaces Gotenberg) ───────────────────────────
-const PDFDocument = require('pdfkit');
+const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 
-app.post('/api/generate-invoice-pdf', (req, res) => {
+app.post('/api/generate-invoice-pdf', async (req, res) => {
   try {
     const d = req.body;
-    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
+    const { height } = page.getSize();
 
-    // Collect PDF into buffer
-    const chunks = [];
-    doc.on('data', chunk => chunks.push(chunk));
-    doc.on('end', () => {
-      const pdfBuffer = Buffer.concat(chunks);
-      res.set({
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="${d.invoice_number || 'invoice'}.pdf"`,
-        'Content-Length': pdfBuffer.length
-      });
-      res.send(pdfBuffer);
-    });
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-    const brandColor = '#b5391a';
-    const gray = '#555555';
-    const lightGray = '#999999';
+    const brandColor = rgb(0.71, 0.22, 0.10); // #b5391a
+    const darkText = rgb(0.17, 0.17, 0.17);   // #2b2b2b
+    const grayText = rgb(0.33, 0.33, 0.33);   // #555555
+    const lightGray = rgb(0.6, 0.6, 0.6);     // #999999
+    const bgHeader = rgb(0.98, 0.94, 0.93);   // #faf1ee
 
     // ── Header ──
-    doc.fontSize(22).fillColor(brandColor).font('Helvetica-Bold')
-       .text('Zain Catering Services', 50, 50);
-    doc.fontSize(10).fillColor(lightGray).font('Helvetica')
-       .text('Catering & Event Arrangements', 50, 76)
-       .text('Lahore, Punjab, Pakistan · +92 300 0000000', 50, 90);
+    page.drawText('Zain Catering Services', { x: 50, y: height - 60, size: 20, font: fontBold, color: brandColor });
+    page.drawText('Catering & Event Arrangements', { x: 50, y: height - 76, size: 9, font: fontRegular, color: lightGray });
+    page.drawText('Lahore, Punjab, Pakistan · +92 300 0000000', { x: 50, y: height - 88, size: 9, font: fontRegular, color: lightGray });
 
-    // Invoice meta (right side)
-    const metaX = 370;
-    doc.fontSize(10).fillColor(gray).font('Helvetica');
-    doc.text(`Invoice #: ${d.invoice_number || ''}`, metaX, 50, { width: 180, align: 'right' });
-    doc.text(`Order Ref: ${d.order_ref || ''}`, metaX, 64, { width: 180, align: 'right' });
-    doc.text(`Issued: ${d.issued_date || ''}`, metaX, 78, { width: 180, align: 'right' });
-    doc.text(`Event Date: ${d.event_date || ''}`, metaX, 92, { width: 180, align: 'right' });
+    // Invoice meta
+    page.drawText(`Invoice #: ${d.invoice_number || ''}`, { x: 370, y: height - 60, size: 9, font: fontRegular, color: grayText });
+    page.drawText(`Order Ref: ${d.order_ref || ''}`, { x: 370, y: height - 72, size: 9, font: fontRegular, color: grayText });
+    page.drawText(`Issued: ${d.issued_date || ''}`, { x: 370, y: height - 84, size: 9, font: fontRegular, color: grayText });
+    page.drawText(`Event Date: ${d.event_date || ''}`, { x: 370, y: height - 96, size: 9, font: fontRegular, color: grayText });
 
-    // Header line
-    doc.moveTo(50, 115).lineTo(545, 115).strokeColor(brandColor).lineWidth(2).stroke();
+    // Header divider line
+    page.drawLine({
+      start: { x: 50, y: height - 110 },
+      end: { x: 545, y: height - 110 },
+      thickness: 2,
+      color: brandColor,
+    });
 
     // ── Billed To ──
-    let y = 130;
-    doc.fontSize(10).fillColor(brandColor).font('Helvetica-Bold').text('BILLED TO', 50, y);
-    y += 16;
-    doc.fontSize(11).fillColor('#2b2b2b').font('Helvetica-Bold').text(d.client_name || '', 50, y);
-    y += 16;
-    doc.fontSize(10).fillColor(gray).font('Helvetica').text(`Phone: ${d.client_phone || ''}`, 50, y);
+    page.drawText('BILLED TO', { x: 50, y: height - 130, size: 9, font: fontBold, color: brandColor });
+    page.drawText(d.client_name || '', { x: 50, y: height - 145, size: 11, font: fontBold, color: darkText });
+    page.drawText(`Phone: ${d.client_phone || ''}`, { x: 50, y: height - 160, size: 9, font: fontRegular, color: grayText });
 
-    // ── Event Details (right side) ──
-    let ey = 130;
-    doc.fontSize(10).fillColor(brandColor).font('Helvetica-Bold').text('EVENT DETAILS', metaX, ey, { width: 180, align: 'right' });
-    ey += 16;
-    doc.fontSize(10).fillColor(gray).font('Helvetica');
-    doc.text(`Venue: ${d.venue_address || 'Not specified'}`, metaX, ey, { width: 180, align: 'right' });
-    ey += 14;
-    doc.text(`Guests: ${d.guest_count || ''}`, metaX, ey, { width: 180, align: 'right' });
-    ey += 14;
-    doc.text(`Status: ${(d.invoice_status || '').toUpperCase()}`, metaX, ey, { width: 180, align: 'right' });
+    // ── Event Details ──
+    page.drawText('EVENT DETAILS', { x: 370, y: height - 130, size: 9, font: fontBold, color: brandColor });
+    page.drawText(`Venue: ${d.venue_address || 'Not specified'}`, { x: 370, y: height - 145, size: 9, font: fontRegular, color: grayText });
+    page.drawText(`Guests: ${d.guest_count || ''}`, { x: 370, y: height - 158, size: 9, font: fontRegular, color: grayText });
+    page.drawText(`Status: ${(d.invoice_status || '').toUpperCase()}`, { x: 370, y: height - 171, size: 9, font: fontRegular, color: grayText });
 
-    // ── Services Table ──
-    y = 210;
-    doc.moveTo(50, y).lineTo(545, y).strokeColor('#eeeeee').lineWidth(1).stroke();
-    y += 6;
-    doc.fontSize(10).fillColor(brandColor).font('Helvetica-Bold').text('SERVICES & ARRANGEMENTS', 50, y);
-    y += 20;
+    // ── Table Header ──
+    let y = height - 210;
+    page.drawRectangle({
+      x: 50,
+      y: y - 18,
+      width: 495,
+      height: 22,
+      color: bgHeader,
+    });
+    page.drawText('ITEM', { x: 58, y: y - 12, size: 9, font: fontBold, color: brandColor });
+    page.drawText('QUANTITY / OPTION', { x: 420, y: y - 12, size: 9, font: fontBold, color: brandColor });
 
-    // Table header
-    doc.rect(50, y, 495, 22).fill('#faf1ee');
-    doc.fontSize(9).fillColor(brandColor).font('Helvetica-Bold');
-    doc.text('ITEM', 58, y + 6);
-    doc.text('QUANTITY / OPTION', 350, y + 6, { width: 190, align: 'right' });
-    y += 28;
+    // Table Row
+    y -= 38;
+    page.drawText('Catering Services, Items', { x: 58, y: y, size: 10, font: fontRegular, color: darkText });
+    page.drawText('Included', { x: 420, y: y, size: 10, font: fontRegular, color: darkText });
 
-    // Table row
-    doc.fontSize(10).fillColor('#2b2b2b').font('Helvetica');
-    doc.text('Catering Services, Items', 58, y + 4);
-    doc.text('Included', 350, y + 4, { width: 190, align: 'right' });
-    y += 22;
-    doc.moveTo(50, y).lineTo(545, y).strokeColor('#eeeeee').lineWidth(0.5).stroke();
+    y -= 10;
+    page.drawLine({
+      start: { x: 50, y: y },
+      end: { x: 545, y: y },
+      thickness: 0.5,
+      color: rgb(0.9, 0.9, 0.9),
+    });
 
     // ── Totals ──
-    y += 30;
-    const totalsX = 350;
-    const valX = 440;
     const fmt = (v) => `PKR ${Number(v || 0).toLocaleString()}`;
+    y -= 30;
+    page.drawText('Total Amount', { x: 350, y: y, size: 10, font: fontRegular, color: grayText });
+    page.drawText(fmt(d.total), { x: 440, y: y, size: 10, font: fontRegular, color: darkText });
 
-    doc.fontSize(11).fillColor(gray).font('Helvetica');
-    doc.text('Total Amount', totalsX, y);
-    doc.text(fmt(d.total), valX, y, { width: 105, align: 'right' });
-    y += 22;
-    doc.text('Paid', totalsX, y);
-    doc.text(fmt(d.paid_amount), valX, y, { width: 105, align: 'right' });
-    y += 22;
+    y -= 20;
+    page.drawText('Paid', { x: 350, y: y, size: 10, font: fontRegular, color: grayText });
+    page.drawText(fmt(d.paid_amount), { x: 440, y: y, size: 10, font: fontRegular, color: darkText });
 
-    // Grand total line
-    doc.moveTo(totalsX, y).lineTo(545, y).strokeColor(brandColor).lineWidth(2).stroke();
-    y += 8;
-    doc.fontSize(14).fillColor(brandColor).font('Helvetica-Bold');
-    doc.text('Balance Due', totalsX, y);
-    doc.text(fmt(d.balance), valX, y, { width: 105, align: 'right' });
+    y -= 10;
+    page.drawLine({
+      start: { x: 350, y: y },
+      end: { x: 545, y: y },
+      thickness: 2,
+      color: brandColor,
+    });
+
+    y -= 20;
+    page.drawText('Balance Due', { x: 350, y: y, size: 13, font: fontBold, color: brandColor });
+    page.drawText(fmt(d.balance), { x: 440, y: y, size: 13, font: fontBold, color: brandColor });
 
     // ── Footer ──
-    doc.fontSize(9).fillColor(lightGray).font('Helvetica');
-    doc.text(
+    page.drawText(
       'Thank you for choosing Zain Catering Services. Payments accepted via Cash, JazzCash, EasyPaisa, or Bank Transfer.',
-      50, 700, { width: 495, align: 'center' }
+      { x: 50, y: 50, size: 8.5, font: fontRegular, color: lightGray }
     );
 
-    doc.end();
+    const pdfBytes = await pdfDoc.save();
+    const pdfBuffer = Buffer.from(pdfBytes);
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="${d.invoice_number || 'invoice'}.pdf"`,
+      'Content-Length': pdfBuffer.length
+    });
+    res.send(pdfBuffer);
   } catch (err) {
     console.error('PDF generation error:', err);
     res.status(500).json({ error: 'PDF generation failed', details: err.message });
