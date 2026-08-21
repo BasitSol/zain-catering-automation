@@ -118,14 +118,15 @@ async function renderDashboard() {
     const errs = data.systemErrors || data.system_errors || [];
     if (errs.length > 0) {
       systemErrorHtml = `
-        <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; color: #f87171;" class="fade-in">
-          <div style="display: flex; align-items: center; justify-content: space-between;">
-            <strong style="font-size: 15px;">⚠️ System Warning: ${errs.length} Workflow Error(s) Logged</strong>
-            <small style="color: rgba(255,255,255,0.6);">Logged automatically in PostgreSQL</small>
+        <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; color: #f87171; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" class="fade-in hover-brightness" onclick="navigateTo('logs')">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 16px;">⚠️</span>
+            <div>
+              <strong style="font-size: 14px; display: block;">System Warning: ${errs.length} Workflow Error(s) Logged</strong>
+              <span style="font-size: 12px; color: rgba(255,255,255,0.6);">Automatic background workflow failures recorded</span>
+            </div>
           </div>
-          <div style="margin-top: 8px; font-size: 13px; display: flex; flex-direction: column; gap: 4px;">
-            ${errs.map(e => `<div><strong>Node "${e.node_name}":</strong> ${e.error_msg} <span style="opacity: 0.6;">(${formatDate(e.created_at)})</span></div>`).join('')}
-          </div>
+          <span style="font-size: 12px; text-decoration: underline; opacity: 0.8; font-weight: 500;">Click to view logs &rarr;</span>
         </div>
       `;
     }
@@ -519,6 +520,53 @@ async function renderPayments(searchTerm = '') {
   }
 }
 
+// ─── Logs ───────────────────────────────────────────────────────────────────
+async function renderLogs() {
+  showLoading();
+  try {
+    const logs = await fetchApi('/api/system-errors');
+    
+    let rows = '';
+    if (logs.length === 0) {
+      rows = `<tr><td colspan="4">${showEmpty('No system errors recorded')}</td></tr>`;
+    } else {
+      rows = logs.map(e => `
+        <tr>
+          <td style="white-space: nowrap;">${formatDateTime(e.created_at)}</td>
+          <td><strong style="color: #ef4444;">${e.node_name}</strong></td>
+          <td><code>${e.execution_id || '—'}</code></td>
+          <td style="color: #f87171; white-space: pre-wrap; font-family: monospace; font-size: 12px; line-height: 1.4;">${e.error_msg}</td>
+        </tr>
+      `).join('');
+    }
+
+    contentArea.innerHTML = `
+      <div class="table-card fade-in">
+        <div class="table-header">
+          <div>
+            <span class="table-title">System Workflow Logs (${logs.length})</span>
+            <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">Recorded errors from the n8n automation pipeline</p>
+          </div>
+        </div>
+        <div class="data-table-wrapper">
+          <table class="data-table" id="logs-table">
+            <thead>
+              <tr>
+                <th style="width: 180px;">Timestamp</th>
+                <th style="width: 160px;">Failed Node</th>
+                <th style="width: 150px;">Execution ID</th>
+                <th>Error Message</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    contentArea.innerHTML = `<div class="empty-state"><p>Error loading logs: ${err.message}</p></div>`;
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  NAVIGATION
@@ -529,6 +577,7 @@ const pageRenderers = {
   clients: renderClients,
   invoices: renderInvoices,
   payments: renderPayments,
+  logs: renderLogs,
 };
 
 const pageTitles = {
@@ -537,6 +586,7 @@ const pageTitles = {
   clients: 'Client Directory',
   invoices: 'Invoices & Billing',
   payments: 'Payment Records',
+  logs: 'System Logs',
 };
 
 function navigateTo(page) {

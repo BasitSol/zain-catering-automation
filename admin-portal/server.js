@@ -249,6 +249,19 @@ app.get('/api/payments', async (req, res) => {
   }
 });
 
+// ─── System Errors ──────────────────────────────────────────────────────────
+app.get('/api/system-errors', async (req, res) => {
+  try {
+    const result = await query(
+      'SELECT id, node_name, error_msg, execution_id, created_at FROM system_errors ORDER BY created_at DESC LIMIT 50'
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('System errors error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Dropdown helpers for custom forms ──────────────────────────────────────
 app.get('/api/config/forms', (req, res) => {
   res.json({

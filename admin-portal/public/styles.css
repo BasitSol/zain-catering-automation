@@ -1086,3 +1086,12 @@ a {
   color: var(--text-secondary);
 }
 
+.hover-brightness {
+  transition: all var(--transition-fast);
+}
+.hover-brightness:hover {
+  filter: brightness(1.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+}
+
