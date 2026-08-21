@@ -114,23 +114,6 @@ async function renderDashboard() {
       `).join('');
     }
 
-    let systemErrorHtml = '';
-    const errs = data.systemErrors || data.system_errors || [];
-    if (errs.length > 0) {
-      systemErrorHtml = `
-        <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; color: #f87171; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" class="fade-in hover-brightness" onclick="navigateTo('logs')">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 16px;">⚠️</span>
-            <div>
-              <strong style="font-size: 14px; display: block;">System Warning: ${errs.length} Workflow Error(s) Logged</strong>
-              <span style="font-size: 12px; color: rgba(255,255,255,0.6);">Automatic background workflow failures recorded</span>
-            </div>
-          </div>
-          <span style="font-size: 12px; text-decoration: underline; opacity: 0.8; font-weight: 500;">Click to view logs &rarr;</span>
-        </div>
-      `;
-    }
-
     const totalOrders = k.totalOrders !== undefined ? k.totalOrders : k.total_orders;
     const totalRevenue = k.totalRevenue !== undefined ? k.totalRevenue : k.total_revenue;
     const pendingBalance = k.pendingBalance !== undefined ? k.pendingBalance : k.pending_balance;
@@ -177,7 +160,6 @@ async function renderDashboard() {
     }
 
     contentArea.innerHTML = `
-      ${systemErrorHtml}
       <div class="kpi-grid">
         <div class="kpi-card fade-in fade-in-delay-1">
           <div class="kpi-label">Total Orders</div>
