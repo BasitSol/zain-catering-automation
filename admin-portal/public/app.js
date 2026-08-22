@@ -128,32 +128,32 @@ async function renderDashboard() {
     let notifCardHtml = '';
     if (totalNotifs === 0) {
       notifCardHtml = `
-        <div class="table-card fade-in" style="margin-bottom: 25px; padding: 18px 24px; border-left: 4px solid #10b981; background: rgba(16, 185, 129, 0.05);">
-          <div style="display: flex; align-items: center; gap: 12px; color: #10b981;">
-            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            <strong style="font-size: 15px;">Operational Center: All Payments Up to Date</strong>
+        <div class="notice-card fade-in">
+          <div class="notice-head">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <strong>All Payments Up to Date</strong>
           </div>
-          <p style="margin: 4px 0 0 34px; font-size: 13px; color: rgba(255,255,255,0.7);">Zero pending promises due today, no overdue balances, and all upcoming events in next 48h are settled.</p>
+          <p class="notice-body">Zero pending promises due today, no overdue balances, and all upcoming events in next 48h are settled.</p>
         </div>
       `;
     } else {
-      let promiseItems = promises.map(p => `<li style="margin-bottom: 6px;">💳 <strong>${p.client_name}</strong> (${p.client_phone || p.phone}) &mdash; Promised <strong>${formatCurrency(p.promised_amount)}</strong> today for Invoice <code>${p.invoice_number}</code></li>`).join('');
-      let overdueItems = overdues.map(o => `<li style="margin-bottom: 6px;">⚠️ <strong>${o.client_name}</strong> (${o.client_phone || o.phone}) &mdash; Owes <strong style="color: #ef4444;">${formatCurrency(o.balance)}</strong> on Invoice <code>${o.invoice_number}</code> (Event was ${formatDate(o.event_date)})</li>`).join('');
-      let upcomingItems = upcoming.map(u => `<li style="margin-bottom: 6px;">📅 <strong>${u.order_ref}</strong> (${u.client_name}, ${u.client_phone || u.phone}) &mdash; Event on <strong>${formatDate(u.event_date)}</strong>, <strong style="color: #f59e0b;">${formatCurrency(u.balance)}</strong> unpaid</li>`).join('');
+      let promiseItems = promises.map(p => `<li>💳 <strong>${p.client_name}</strong> (${p.client_phone || p.phone}) &mdash; Promised <strong>${formatCurrency(p.promised_amount)}</strong> today for Invoice <code>${p.invoice_number}</code></li>`).join('');
+      let overdueItems = overdues.map(o => `<li>⚠️ <strong>${o.client_name}</strong> (${o.client_phone || o.phone}) &mdash; Owes <span class="amount-danger">${formatCurrency(o.balance)}</span> on Invoice <code>${o.invoice_number}</code> (Event was ${formatDate(o.event_date)})</li>`).join('');
+      let upcomingItems = upcoming.map(u => `<li>📅 <strong>${u.order_ref}</strong> (${u.client_name}, ${u.client_phone || u.phone}) &mdash; Event on <strong>${formatDate(u.event_date)}</strong>, <span class="amount-warn">${formatCurrency(u.balance)}</span> unpaid</li>`).join('');
 
       notifCardHtml = `
-        <div class="table-card fade-in" style="margin-bottom: 25px; border-left: 4px solid #f59e0b;">
-          <div class="table-header" style="padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08);">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <span class="table-title">🔔 Operational Notifications Center</span>
-              <span class="status-badge status-pending" style="font-size: 12px; padding: 2px 10px;">${totalNotifs} Action Alert(s)</span>
+        <div class="table-card alert-card fade-in">
+          <div class="table-header">
+            <div class="alert-head-group">
+              <span class="table-title">Operational Notifications</span>
+              <span class="status-badge status-pending">${totalNotifs} Action Alert(s)</span>
             </div>
-            <small style="color: rgba(255,255,255,0.5);">Real-time PostgreSQL tracking</small>
+            <small class="alert-head-meta">Real-time PostgreSQL tracking</small>
           </div>
-          <div style="padding: 16px 20px; font-size: 13px; color: #e2e8f0; display: flex; flex-direction: column; gap: 14px;">
-            ${promises.length > 0 ? `<div><strong style="color: #60a5fa; font-size: 14px;">Payment Promises Due Today (${promises.length})</strong><ul style="margin: 6px 0 0 18px; padding: 0;">${promiseItems}</ul></div>` : ''}
-            ${overdues.length > 0 ? `<div><strong style="color: #f87171; font-size: 14px;">Overdue Balances Needing Follow-up (${overdues.length})</strong><ul style="margin: 6px 0 0 18px; padding: 0;">${overdueItems}</ul></div>` : ''}
-            ${upcoming.length > 0 ? `<div><strong style="color: #fbbf24; font-size: 14px;">Events in Next 48h With Balance Due (${upcoming.length})</strong><ul style="margin: 6px 0 0 18px; padding: 0;">${upcomingItems}</ul></div>` : ''}
+          <div class="alert-groups">
+            ${promises.length > 0 ? `<div><strong class="alert-group-title is-info">Payment Promises Due Today (${promises.length})</strong><ul class="alert-list">${promiseItems}</ul></div>` : ''}
+            ${overdues.length > 0 ? `<div><strong class="alert-group-title is-danger">Overdue Balances Needing Follow-up (${overdues.length})</strong><ul class="alert-list">${overdueItems}</ul></div>` : ''}
+            ${upcoming.length > 0 ? `<div><strong class="alert-group-title is-warn">Events in Next 48h With Balance Due (${upcoming.length})</strong><ul class="alert-list">${upcomingItems}</ul></div>` : ''}
           </div>
         </div>
       `;
@@ -514,10 +514,10 @@ async function renderLogs() {
     } else {
       rows = logs.map(e => `
         <tr>
-          <td style="white-space: nowrap;">${formatDateTime(e.created_at)}</td>
-          <td><strong style="color: #ef4444;">${e.node_name}</strong></td>
+          <td class="log-time">${formatDateTime(e.created_at)}</td>
+          <td><strong class="log-node">${e.node_name}</strong></td>
           <td><code>${e.execution_id || '—'}</code></td>
-          <td style="color: #f87171; white-space: pre-wrap; font-family: monospace; font-size: 12px; line-height: 1.4;">${e.error_msg}</td>
+          <td><div class="log-msg">${e.error_msg}</div></td>
         </tr>
       `).join('');
     }
@@ -527,7 +527,7 @@ async function renderLogs() {
         <div class="table-header">
           <div>
             <span class="table-title">System Workflow Logs (${logs.length})</span>
-            <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">Recorded errors from the n8n automation pipeline</p>
+            <p class="card-subtitle">Recorded errors from the n8n automation pipeline</p>
           </div>
         </div>
         <div class="data-table-wrapper">
@@ -1015,14 +1015,14 @@ async function submitWizard() {
 
     // Success Screen
     stepArea.innerHTML = `
-      <div class="empty-state animate-fade-in" style="padding: 40px 0;">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2">
+      <div class="empty-state wizard-success animate-fade-in">
+        <svg class="wizard-success-icon" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
           <polyline points="22 4 12 14.01 9 11.01"/>
         </svg>
-        <h4 style="color: var(--text-primary); font-size: 18px; margin-top: 16px; margin-bottom: 8px;">Submission Received!</h4>
-        <p style="color: var(--text-secondary); font-size: 13px;">The automation engine has received this form and is processing it in the background.</p>
-        <button class="action-btn" id="btn-close-success" style="margin-top: 24px;">Back to Dashboard</button>
+        <h4>Submission Received</h4>
+        <p>The automation engine has received this form and is processing it in the background.</p>
+        <button class="action-btn" id="btn-close-success" type="button">Back to Dashboard</button>
       </div>
     `;
     document.getElementById('btn-close-success').addEventListener('click', closeWizard);
@@ -1052,13 +1052,13 @@ document.getElementById('btn-client-order').addEventListener('click', () => {
     const btn = document.getElementById('btn-client-order');
     const originalText = btn.innerHTML;
     btn.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-      ✅ Link Copied!
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      Link Copied
     `;
-    btn.style.borderColor = 'rgba(52, 211, 153, 0.4)';
+    btn.classList.add('is-copied');
     setTimeout(() => {
       btn.innerHTML = originalText;
-      btn.style.borderColor = '';
+      btn.classList.remove('is-copied');
     }, 2000);
   }).catch(() => {
     prompt('Copy this link and share with your client:', window.location.origin + '/order');
